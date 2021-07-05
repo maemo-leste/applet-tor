@@ -1,6 +1,9 @@
 desktopdir = $(hildonhomedesktopdir)
 desktop_DATA = status-applet-tor.desktop
 
+controldir = $(controlpaneldesktopdir)
+control_DATA = control-applet-tor.desktop
+
 icon48_DATA = \
 	statusarea_tor_enabled.png \
 	statusarea_tor_disabled.png

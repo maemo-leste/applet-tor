@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Tor
+Comment=Change Tor settings
+Type=HildonControlPanelPlugin
+Icon=statusarea_tor_enabled
+X-control-panel-plugin=control-applet-tor.so
+Categories=connectivity
