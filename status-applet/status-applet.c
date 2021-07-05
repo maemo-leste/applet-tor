@@ -79,13 +79,13 @@ HD_DEFINE_PLUGIN_MODULE_WITH_PRIVATE(StatusAppletTor, status_applet_tor,
 
 static void save_settings(StatusAppletTor * self)
 {
-	/* TODO: Here make a note in gconf on which configuration is selected.
-	 * e.g.
-	 * Default -> /system/maemo/tor/active_config
-	 * or
-	 * Foobar -> /system/maemo/tor/active_config
-	 */
-	(void)self;
+	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+	p->active_config =
+	    hildon_touch_selector_get_current_text(HILDON_TOUCH_SELECTOR
+						   (p->config_btn));
+
+	GConfClient *gconf = gconf_client_get_default();
+	gconf_client_set_string(gconf, GC_TOR_ACTIVE, p->active_config, NULL);
 }
 
 static void start_tor_daemon(StatusAppletTor * self)
@@ -139,7 +139,6 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	size_group = gtk_size_group_new(GTK_SIZE_GROUP_HORIZONTAL);
 	touch_selector = hildon_touch_selector_new_text();
 
-	/* TODO: hildon_touch_selector_get_current_text */
 	p->config_btn = hildon_picker_button_new(HILDON_SIZE_FINGER_HEIGHT, 0);
 	hildon_picker_button_set_selector(HILDON_PICKER_BUTTON(p->config_btn),
 					  HILDON_TOUCH_SELECTOR
@@ -148,13 +147,26 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 				"Current configuration");
 	hildon_button_set_alignment(HILDON_BUTTON(p->config_btn), 0.0, 0.5, 1.0,
 				    1.0);
-	/* TODO: for loop list gconf configurations */
-	hildon_touch_selector_append_text(HILDON_TOUCH_SELECTOR(touch_selector),
-					  "Default");
-	hildon_touch_selector_append_text(HILDON_TOUCH_SELECTOR(touch_selector),
-					  "Custom");
+
+	/* Fill the selector with available configs */
+	GConfClient *gconf = gconf_client_get_default();
+	GSList *configs, *iter;
+	configs = gconf_client_all_dirs(gconf, GC_TOR, NULL);
+	g_object_unref(gconf);
+	for (iter = configs; iter; iter = iter->next) {
+		hildon_touch_selector_append_text(HILDON_TOUCH_SELECTOR
+						  (touch_selector),
+						  g_path_get_basename
+						  (iter->data));
+		g_free(iter->data);
+	}
+	g_slist_free(iter);
+	g_slist_free(configs);
+
 	hildon_button_add_title_size_group(HILDON_BUTTON(p->config_btn),
 					   size_group);
+
+	/* TODO: Select correct config */
 	hildon_touch_selector_set_active(HILDON_TOUCH_SELECTOR(touch_selector),
 					 0, 0);
 

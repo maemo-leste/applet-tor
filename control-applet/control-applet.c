@@ -21,6 +21,7 @@
 #endif
 
 #include <gtk/gtk.h>
+#include <gconf/gconf-client.h>
 #include <hildon/hildon.h>
 #include <hildon-cp-plugin/hildon-cp-plugin-interface.h>
 
@@ -31,11 +32,49 @@ enum {
 	CONFIG_DONE,
 };
 
+enum {
+	LIST_ITEM = 0,
+	N_COLUMNS
+};
+
+#define GC_TOR        "/system/maemo/tor"
+#define GC_TOR_ACTIVE GC_TOR"/active_config"
+
+static void add_to_treeview(GtkWidget * tv, const gchar * str)
+{
+	GtkListStore *store;
+	GtkTreeIter iter;
+
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(tv)));
+
+	gtk_list_store_append(store, &iter);
+	gtk_list_store_set(store, &iter, LIST_ITEM, str, -1);
+}
+
+static void fill_treeview_from_gconf(GtkWidget * tv)
+{
+	GConfClient *gconf;
+	GSList *configs, *iter;
+
+	gconf = gconf_client_get_default();
+	configs = gconf_client_all_dirs(gconf, GC_TOR, NULL);
+	g_object_unref(gconf);
+
+	for (iter = configs; iter; iter = iter->next) {
+		add_to_treeview(tv, g_path_get_basename(iter->data));
+		g_free(iter->data);
+	}
+
+	g_slist_free(iter);
+	g_slist_free(configs);
+}
+
 static GtkWidget *new_main_dialog(GtkWindow * parent)
 {
-	GtkWidget *dialog, *tree_view, *scrolled_window;
-	GtkTreeSelection *selection;
-	GtkListStore *list_store;
+	GtkWidget *dialog, *tv;
+	GtkListStore *store;
+	GtkCellRenderer *renderer;
+	GtkTreeViewColumn *column;
 
 	dialog =
 	    gtk_dialog_new_with_buttons("Tor Configurations", parent, 0,
@@ -44,26 +83,22 @@ static GtkWidget *new_main_dialog(GtkWindow * parent)
 					"Delete", CONFIG_DELETE,
 					"Done", CONFIG_DONE, NULL);
 
-	list_store = gtk_list_store_new(6, GDK_TYPE_PIXBUF, G_TYPE_STRING,
-					G_TYPE_STRING, G_TYPE_STRING,
-					G_TYPE_STRING, G_TYPE_STRING);
+	tv = gtk_tree_view_new();
+	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tv), FALSE);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), tv, TRUE, TRUE,
+			   0);
 
-	tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(list_store));
-	g_object_unref(list_store);
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes("Items",
+							  renderer, "text",
+							  LIST_ITEM, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tv), column);
+	store = gtk_list_store_new(1, G_TYPE_STRING);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(tv), GTK_TREE_MODEL(store));
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view));
-	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
-	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree_view), FALSE);
+	g_object_unref(store);
 
-	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
-				       GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-
-	gtk_container_add(GTK_CONTAINER(scrolled_window), tree_view);
-	gtk_widget_set_size_request(scrolled_window, 478, 240);
-
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), scrolled_window,
-			   TRUE, TRUE, 0);
+	fill_treeview_from_gconf(tv);
 
 	return dialog;
 }
