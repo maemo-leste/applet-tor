@@ -21,13 +21,24 @@
 #include <config.h>
 #endif
 
+#include <dbus/dbus-glib-lowlevel.h>
 #include <gtk/gtk.h>
 #include <hildon/hildon.h>
 #include <libhildondesktop/libhildondesktop.h>
+#include <libosso.h>
+
+/* Use this for debugging */
+#include <syslog.h>
+#define status_debug(...) syslog(1, __VA_ARGS__)
 
 #define STATUS_APPLET_TOR_TYPE (status_applet_tor_get_type())
 #define STATUS_APPLET_TOR(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
 		STATUS_APPLET_TOR_TYPE, StatusAppletTor))
+
+#define SETTINGS_RESPONSE -69
+
+#define GC_TOR  "/system/maemo/tor"
+#define GC_CONF GC_TOR"/configs"
 
 typedef struct _StatusAppletTor StatusAppletTor;
 typedef struct _StatusAppletTorClass StatusAppletTorClass;
@@ -49,12 +60,15 @@ struct _StatusAppletTorClass {
 };
 
 struct _StatusAppletTorPrivate {
+	osso_context_t *osso;
+	DBusConnection *dbus;
 	GtkWidget *menu_button;
 	TorConnState connection_state;
 	gboolean provider_connected;
 	gboolean tor_running;
 	GtkWidget *settings_dialog;
-	GtkWidget *tor_chkbutton;
+	GtkWidget *tor_chkbtn;
+	GtkWidget *config_btn;
 };
 
 HD_DEFINE_PLUGIN_MODULE_WITH_PRIVATE(StatusAppletTor, status_applet_tor,
@@ -63,12 +77,33 @@ HD_DEFINE_PLUGIN_MODULE_WITH_PRIVATE(StatusAppletTor, status_applet_tor,
 
 static void save_settings(StatusAppletTor * self)
 {
+	/* TODO: Here make a note in gconf on which configuration is selected.
+	 * e.g.
+	 * Default -> /system/maemo/tor/active_config
+	 * or
+	 * Foobar -> /system/maemo/tor/active_config
+	 */
 	(void)self;
 }
 
 static void start_tor_daemon(StatusAppletTor * self)
 {
+	/* TODO: Generate torrc from gconf and start via fork&exec
+	 * This way we don't need privilege escalation. */
 	(void)self;
+}
+
+static void execute_cp_plugin(GtkWidget * btn, StatusAppletTor * self)
+{
+	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+	GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(self));
+	gtk_widget_hide(toplevel);
+
+	if (osso_cp_plugin_execute(p->osso, "control-applet-tor.so", self, TRUE)
+	    == OSSO_ERROR) {
+		hildon_banner_show_information(NULL, NULL,
+					       "Failed to show Tor settings");
+	}
 }
 
 static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
@@ -76,7 +111,7 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
 	GtkWidget *toplevel = gtk_widget_get_toplevel(btn);
 	GtkSizeGroup *size_group;
-	GtkWidget *config_btn, *touch_selector;
+	GtkWidget *touch_selector;
 
 	gtk_widget_hide(toplevel);
 
@@ -85,42 +120,51 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 							    (toplevel),
 							    GTK_DIALOG_MODAL |
 							    GTK_DIALOG_DESTROY_WITH_PARENT,
+							    "Settings",
+							    SETTINGS_RESPONSE,
 							    GTK_STOCK_SAVE,
 							    GTK_RESPONSE_ACCEPT,
 							    NULL);
 
-	/* TODO: Disable (make inactive and checked ) when connected to provider */
-	p->tor_chkbutton =
+	p->tor_chkbtn =
 	    hildon_check_button_new(HILDON_SIZE_FINGER_HEIGHT |
 				    HILDON_SIZE_AUTO_WIDTH);
-	gtk_button_set_label(GTK_BUTTON(p->tor_chkbutton), "Enable Tor daemon");
-	hildon_check_button_set_active(HILDON_CHECK_BUTTON(p->tor_chkbutton),
+	gtk_button_set_label(GTK_BUTTON(p->tor_chkbtn), "Enable Tor daemon");
+	hildon_check_button_set_active(HILDON_CHECK_BUTTON(p->tor_chkbtn),
 				       p->tor_running);
 
 	/* TODO: Connect with saved configurations from control panel */
 	size_group = gtk_size_group_new(GTK_SIZE_GROUP_HORIZONTAL);
 	touch_selector = hildon_touch_selector_new_text();
 	/* TODO: hildon_touch_selector_get_current_text */
-	config_btn = hildon_picker_button_new(HILDON_SIZE_FINGER_HEIGHT, 0);
-	hildon_picker_button_set_selector(HILDON_PICKER_BUTTON(config_btn),
+	p->config_btn = hildon_picker_button_new(HILDON_SIZE_FINGER_HEIGHT, 0);
+	hildon_picker_button_set_selector(HILDON_PICKER_BUTTON(p->config_btn),
 					  HILDON_TOUCH_SELECTOR
 					  (touch_selector));
-	hildon_button_set_title(HILDON_BUTTON(config_btn),
+	hildon_button_set_title(HILDON_BUTTON(p->config_btn),
 				"Current configuration");
-	hildon_button_set_alignment(HILDON_BUTTON(config_btn), 0.0, 0.5, 1.0,
+	hildon_button_set_alignment(HILDON_BUTTON(p->config_btn), 0.0, 0.5, 1.0,
 				    1.0);
 	/* TODO: for loop list gconf configurations */
 	hildon_touch_selector_append_text(HILDON_TOUCH_SELECTOR(touch_selector),
 					  "Default");
 	hildon_touch_selector_append_text(HILDON_TOUCH_SELECTOR(touch_selector),
 					  "Custom");
-	hildon_button_add_title_size_group(HILDON_BUTTON(config_btn),
+	hildon_button_add_title_size_group(HILDON_BUTTON(p->config_btn),
 					   size_group);
 
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(p->settings_dialog)->vbox),
-			   p->tor_chkbutton, TRUE, TRUE, 0);
+			   p->tor_chkbtn, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(p->settings_dialog)->vbox),
-			   config_btn, TRUE, TRUE, 0);
+			   p->config_btn, TRUE, TRUE, 0);
+
+	/* Make the buttons insensitive when provider is connected.
+	 * At this time the daemon is controlled by icd and not this applet.
+	 */
+	if (p->provider_connected) {
+		gtk_widget_set_sensitive(p->tor_chkbtn, FALSE);
+		gtk_widget_set_sensitive(p->config_btn, FALSE);
+	}
 
 	gtk_widget_show_all(p->settings_dialog);
 	switch (gtk_dialog_run(GTK_DIALOG(p->settings_dialog))) {
@@ -128,6 +172,8 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 		save_settings(self);
 		start_tor_daemon(self);
 		break;
+	case SETTINGS_RESPONSE:
+		execute_cp_plugin(btn, self);
 	default:
 		break;
 	}
@@ -151,7 +197,7 @@ static void status_applet_tor_set_icons(StatusAppletTor * self)
 					"Disconnected");
 		break;
 	case TOR_CONNECTING:
-		// TODO: blink
+		/* TODO: blink, use network-liveness from Tor control socket */
 		break;
 	case TOR_CONNECTED:
 		menu_pixbuf =
@@ -175,7 +221,8 @@ static void status_applet_tor_set_icons(StatusAppletTor * self)
 						 0);
 		g_object_unref(menu_pixbuf);
 	}
-	// The icon is hidden when the pixbuf is NULL
+
+	/* The icon is hidden when the pixbuf is NULL */
 	hd_status_plugin_item_set_status_area_icon(HD_STATUS_PLUGIN_ITEM(self),
 						   status_pixbuf);
 
@@ -184,15 +231,86 @@ static void status_applet_tor_set_icons(StatusAppletTor * self)
 	}
 }
 
+static int handle_running(gpointer obj, DBusMessage * msg)
+{
+	/* Either show or hide status icon */
+	StatusAppletTorPrivate *p = GET_PRIVATE(obj);
+	int status;
+
+	dbus_message_get_args(msg, NULL, DBUS_TYPE_BYTE,
+			      &status, DBUS_TYPE_INVALID);
+
+	p->provider_connected = TRUE;
+	p->tor_running = TRUE;
+
+	return 0;
+}
+
+static int on_icd_signal(DBusConnection * dbus, DBusMessage * msg, gpointer obj)
+{
+	(void)dbus;
+
+	if (dbus_message_is_signal
+	    (msg, "org.maemo.TorProvider.Running", "Running"))
+		return handle_running(obj, msg);
+
+	return 1;
+}
+
+static void setup_dbus_matching(StatusAppletTor * self)
+{
+	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+	DBusError err;
+
+	p->dbus =
+	    hd_status_plugin_item_get_dbus_connection(HD_STATUS_PLUGIN_ITEM
+						      (self), DBUS_BUS_SYSTEM,
+						      &err);
+
+	if (dbus_error_is_set(&err)) {
+		status_debug("tor-sb: Error getting dbus system bus: %s",
+			     err.message);
+		dbus_error_free(&err);
+		return;
+	}
+
+	dbus_connection_setup_with_g_main(p->dbus, NULL);
+
+	dbus_bus_add_match(p->dbus,
+			   "type='signal',interface='org.maemo.TorProvider.Running',member='Running'",
+			   &err);
+
+	if (dbus_error_is_set(&err)) {
+		status_debug("tor-sb: Failed to add match: %s", err.message);
+		dbus_error_free(&err);
+		return;
+	}
+
+	if (!dbus_connection_add_filter
+	    (p->dbus, (DBusHandleMessageFunction) on_icd_signal, self, NULL)) {
+		status_debug("tor-sb: Failed to add dbus filter");
+		return;
+	}
+}
+
 static void status_applet_tor_init(StatusAppletTor * self)
 {
 	StatusAppletTor *sa = STATUS_APPLET_TOR(self);
 	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
+	DBusError err;
+
+	p->osso = osso_initialize("tor-sb", VERSION, FALSE, NULL);
+
+	dbus_error_init(&err);
 
 	p->connection_state = TOR_NOT_CONNECTED;
 	p->tor_running = FALSE;
 	p->provider_connected = FALSE;
 
+	/* Dbus setup for icd provider */
+	setup_dbus_matching(self);
+
+	/* Gtk items */
 	p->menu_button =
 	    hildon_button_new_with_text(HILDON_SIZE_FINGER_HEIGHT,
 					HILDON_BUTTON_ARRANGEMENT_VERTICAL,
