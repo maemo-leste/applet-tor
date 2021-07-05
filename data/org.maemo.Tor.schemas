@@ -51,6 +51,18 @@
     </schema>
 
     <schema>
+      <key>/schemas/system/maemo/tor/Default/dns-port</key>
+      <applyto>/system/maemo/tor/Default/dns-port</applyto>
+      <owner>applet-tor</owner>
+      <type>int</type>
+      <default>5353</default>
+      <locale name="C">
+        <short>Tor DNSPort</short>
+        <long>Tor DNSPort</long>
+      </locale>
+    </schema>
+
+    <schema>
       <key>/schemas/system/maemo/tor/Default/datadir</key>
       <applyto>/system/maemo/tor/Default/datadir</applyto>
       <owner>applet-tor</owner>
