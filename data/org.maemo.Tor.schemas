@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<gconfschemafile>
+  <schemalist>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/active_config</key>
+      <applyto>/system/maemo/tor/active_config</applyto>
+      <owner>applet-tor</owner>
+      <type>string</type>
+      <default>Default</default>
+      <locale name="C">
+        <short>Active Tor configuration</short>
+        <long>This key contains the selected active Tor configuration</long>
+      </locale>
+    </schema>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/socks-port</key>
+      <applyto>/system/maemo/tor/Default/socks-port</key>
+      <owner>applet-tor</owner>
+      <type>int</type>
+      <default>9050</default>
+      <locale name="C">
+        <short>Tor SOCKSPort</short>
+        <long>Tor SOCKSPort</long>
+      </locale>
+    </schema>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/control-port</key>
+      <applyto>/system/maemo/tor/Default/control-port</key>
+      <owner>applet-tor</owner>
+      <type>int</type>
+      <default>9051</default>
+      <locale name="C">
+        <short>Tor ControlPort</short>
+        <long>Tor ControlPort</long>
+      </locale>
+    </schema>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/trans-port</key>
+      <applyto>/system/maemo/tor/Default/trans-port</key>
+      <owner>applet-tor</owner>
+      <type>int</type>
+      <default>9040</default>
+      <locale name="C">
+        <short>Tor TransPort</short>
+        <long>Tor TransPort</short>
+      </locale>
+    </schema>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/datadir</key>
+      <applyto>/system/maemo/tor/Default/datadir</key>
+      <owner>applet-tor</owner>
+      <type>string</type>
+      <!-- Supposed to append the config name when creating -->
+      <!-- So this becomes datadir-Default -->
+      <default>/home/user/.local/tor-applet/datadir-</default>
+      <locale name="C">
+        <short>Tor DataDir</short>
+        <long>Path to Tor's datadir where certain necessary files shall be stored</long>
+      </locale>
+    </schema>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/rundir</key>
+      <applyto>/system/maemo/tor/Default/rundir</key>
+      <owner>applet-tor</owner>
+      <type>string</type>
+      <!-- Supposed to append the config name when creating -->
+      <!-- So this becomes tor-applet/Default -->
+      <default>/run/tor-applet/</default>
+      <locale name="C">
+        <short>Tor RunDir</short>
+        <long>Path to Tor's runtime data directory</long>
+      </locale>
+    </schema>
+
+    <!-- TODO: Hidden services and bridges as arrays -->
+
+  </schemalist>
+</gconfschemafile>

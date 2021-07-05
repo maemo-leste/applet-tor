@@ -11,3 +11,6 @@ icon48_DATA = \
 icon18_DATA = \
 	statusarea_tor_connected.png \
 	statusarea_tor_connecting.png
+
+gconfschemasdir = $(sysconfdir)/gconf/schemas
+dist_gconfschemas_DATA = org.maemo.Tor.schemas

@@ -262,6 +262,8 @@ static void setup_dbus_matching(StatusAppletTor * self)
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
 	DBusError err;
 
+	dbus_error_init(&err);
+
 	p->dbus =
 	    hd_status_plugin_item_get_dbus_connection(HD_STATUS_PLUGIN_ITEM
 						      (self), DBUS_BUS_SYSTEM,
