@@ -25,6 +25,8 @@
 #include <hildon/hildon.h>
 #include <hildon-cp-plugin/hildon-cp-plugin-interface.h>
 
+#include "wizard.h"
+
 enum {
 	CONFIG_NEW,
 	CONFIG_EDIT,
@@ -118,6 +120,8 @@ osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
 		/* TODO: Work on selected item in TreeView */
 		switch (gtk_dialog_run(GTK_DIALOG(maindialog))) {
 		case CONFIG_NEW:
+			gtk_widget_hide(maindialog);
+			start_new_wizard(NULL);
 			break;
 		case CONFIG_EDIT:
 			break;

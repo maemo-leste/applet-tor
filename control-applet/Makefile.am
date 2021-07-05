@@ -2,7 +2,8 @@ controllib_LTLIBRARIES = control-applet-tor.la
 controllibdir = $(controlpanellibdir)
 
 control_applet_tor_la_SOURCES = \
-	control-applet.c
+	control-applet.c \
+	wizard.c
 
 control_applet_tor_la_CFLAGS = \
 	$(libhildon_CFLAGS) \
