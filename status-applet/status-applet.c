@@ -22,6 +22,7 @@
 #endif
 
 #include <dbus/dbus-glib-lowlevel.h>
+#include <gconf/gconf-client.h>
 #include <gtk/gtk.h>
 #include <hildon/hildon.h>
 #include <libhildondesktop/libhildondesktop.h>
@@ -37,8 +38,8 @@
 
 #define SETTINGS_RESPONSE -69
 
-#define GC_TOR  "/system/maemo/tor"
-#define GC_CONF GC_TOR"/configs"
+#define GC_TOR        "/system/maemo/tor"
+#define GC_TOR_ACTIVE GC_TOR"/active_config"
 
 typedef struct _StatusAppletTor StatusAppletTor;
 typedef struct _StatusAppletTorClass StatusAppletTorClass;
@@ -62,6 +63,7 @@ struct _StatusAppletTorClass {
 struct _StatusAppletTorPrivate {
 	osso_context_t *osso;
 	DBusConnection *dbus;
+	gchar *active_config;
 	GtkWidget *menu_button;
 	TorConnState connection_state;
 	gboolean provider_connected;
@@ -136,6 +138,7 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	/* TODO: Connect with saved configurations from control panel */
 	size_group = gtk_size_group_new(GTK_SIZE_GROUP_HORIZONTAL);
 	touch_selector = hildon_touch_selector_new_text();
+
 	/* TODO: hildon_touch_selector_get_current_text */
 	p->config_btn = hildon_picker_button_new(HILDON_SIZE_FINGER_HEIGHT, 0);
 	hildon_picker_button_set_selector(HILDON_PICKER_BUTTON(p->config_btn),
@@ -152,6 +155,8 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 					  "Custom");
 	hildon_button_add_title_size_group(HILDON_BUTTON(p->config_btn),
 					   size_group);
+	hildon_touch_selector_set_active(HILDON_TOUCH_SELECTOR(touch_selector),
+					 0, 0);
 
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(p->settings_dialog)->vbox),
 			   p->tor_chkbtn, TRUE, TRUE, 0);
@@ -260,32 +265,18 @@ static int on_icd_signal(DBusConnection * dbus, DBusMessage * msg, gpointer obj)
 static void setup_dbus_matching(StatusAppletTor * self)
 {
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
-	DBusError err;
-
-	dbus_error_init(&err);
 
 	p->dbus =
 	    hd_status_plugin_item_get_dbus_connection(HD_STATUS_PLUGIN_ITEM
 						      (self), DBUS_BUS_SYSTEM,
-						      &err);
-
-	if (dbus_error_is_set(&err)) {
-		status_debug("tor-sb: Error getting dbus system bus: %s",
-			     err.message);
-		dbus_error_free(&err);
-		return;
-	}
+						      NULL);
 
 	dbus_connection_setup_with_g_main(p->dbus, NULL);
 
-	dbus_bus_add_match(p->dbus,
-			   "type='signal',interface='org.maemo.TorProvider.Running',member='Running'",
-			   &err);
-
-	if (dbus_error_is_set(&err)) {
-		status_debug("tor-sb: Failed to add match: %s", err.message);
-		dbus_error_free(&err);
-		return;
+	if (p->dbus) {
+		dbus_bus_add_match(p->dbus,
+				   "type='signal',interface='org.maemo.TorProvider.Running',member='Running'",
+				   NULL);
 	}
 
 	if (!dbus_connection_add_filter
@@ -300,6 +291,7 @@ static void status_applet_tor_init(StatusAppletTor * self)
 	StatusAppletTor *sa = STATUS_APPLET_TOR(self);
 	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
 	DBusError err;
+	GConfClient *gconf;
 
 	p->osso = osso_initialize("tor-sb", VERSION, FALSE, NULL);
 
@@ -311,6 +303,11 @@ static void status_applet_tor_init(StatusAppletTor * self)
 
 	/* Dbus setup for icd provider */
 	setup_dbus_matching(self);
+
+	/* Get current config; make sure to keep this up to date */
+	gconf = gconf_client_get_default();
+	p->active_config = gconf_client_get_string(gconf, GC_TOR_ACTIVE, NULL);
+	g_object_unref(gconf);
 
 	/* Gtk items */
 	p->menu_button =
