@@ -1,0 +1,25 @@
+Source: applet-tor
+Section: libs
+Priority: optional
+Maintainer: Ivan J. <parazyd@dyne.org>
+Build-Depends:
+ debhelper-compat (= 12),
+ libhildon1-dev,
+ libhildondesktop1-dev,
+ hildon-control-panel-dev,
+ libgtk2.0-dev,
+ libglib2.0-dev,
+ libosso-dev,
+ libgconf2-dev,
+ libdbus-1-dev,
+Standards-Version: 4.3.0
+
+Package: status-area-tor
+Architecture: any
+Depends: ${misc:Depends}, ${shlib:Depends}
+Description: Tor status area applet
+
+Package: control-panel-tor
+Architecture: any
+Depends: ${misc:Depends}, ${shlib:Depends}
+Description: Tor control panel applet

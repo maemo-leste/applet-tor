@@ -15,6 +15,7 @@ PKG_CHECK_MODULES(gtk2, gtk+-2.0)
 PKG_CHECK_MODULES(glib2, glib-2.0)
 PKG_CHECK_MODULES(libosso, libosso)
 PKG_CHECK_MODULES(gconf, gconf-2.0)
+PKG_CHECK_MODULES(dbus, dbus-1)
 
 icon48dir=`pkg-config libhildondesktop-1 --variable=prefix`/share/icons/hicolor/48x48/hildon
 icon18dir=`pkg-config libhildondesktop-1 --variable=prefix`/share/icons/hicolor/18x18/hildon
@@ -37,6 +38,8 @@ AC_SUBST(libosso_CFLAGS)
 AC_SUBST(libosso_LIBS)
 AC_SUBST(gconf_CFLAGS)
 AC_SUBST(gconf_LIBS)
+AC_SUBST(dbus_CFLAGS)
+AC_SUBST(dbus_LIBS)
 AC_SUBST(icon48dir)
 AC_SUBST(icon18dir)
 AC_SUBST(hildonhomedesktopdir)
