@@ -16,10 +16,10 @@ Standards-Version: 4.3.0
 
 Package: status-area-tor
 Architecture: any
-Depends: ${misc:Depends}, ${shlib:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Tor status area applet
 
 Package: control-panel-tor
 Architecture: any
-Depends: ${misc:Depends}, ${shlib:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Tor control panel applet
