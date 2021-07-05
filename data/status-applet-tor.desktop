@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Tor
+Comment=Tor Status applet
+Type=default
+X-Path=status-applet-tor.so
