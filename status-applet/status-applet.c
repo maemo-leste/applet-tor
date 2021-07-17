@@ -92,7 +92,13 @@ static void start_tor_daemon(StatusAppletTor * self)
 {
 	/* TODO: Generate torrc from gconf and start via fork&exec
 	 * This way we don't need privilege escalation. */
-	(void)self;
+	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+
+	if (hildon_check_button_get_active(HILDON_CHECK_BUTTON(p->tor_chkbtn)))
+		status_debug("tor-sb: Starting Tor daemon");
+	else
+		status_debug("tor-sb: Stopping Tor daemon");
+
 }
 
 static void execute_cp_plugin(GtkWidget * btn, StatusAppletTor * self)
@@ -153,11 +159,19 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	GSList *configs, *iter;
 	configs = gconf_client_all_dirs(gconf, GC_TOR, NULL);
 	g_object_unref(gconf);
+
+	/* Counter for figuring out the active config */
+	int ac = 0, i = -1;
+
 	for (iter = configs; iter; iter = iter->next) {
+		i++;
 		hildon_touch_selector_append_text(HILDON_TOUCH_SELECTOR
 						  (touch_selector),
 						  g_path_get_basename
 						  (iter->data));
+		if (!strcmp(iter->data, p->active_config))
+			ac = i;
+
 		g_free(iter->data);
 	}
 	g_slist_free(iter);
@@ -168,7 +182,7 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 
 	/* TODO: Select correct config */
 	hildon_touch_selector_set_active(HILDON_TOUCH_SELECTOR(touch_selector),
-					 0, 0);
+					 0, ac);
 
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(p->settings_dialog)->vbox),
 			   p->tor_chkbtn, TRUE, TRUE, 0);
