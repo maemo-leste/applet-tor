@@ -23,6 +23,20 @@
 #define xstr(x) str(x)
 */
 
+#define GC_TOR        "/system/maemo/tor"
+#define GC_TOR_ACTIVE GC_TOR"/active_config"
+
+#define GC_CFG_SOCKSPORT    "socks-port"
+#define GC_CFG_CONTROLPORT  "control-port"
+#define GC_CFG_TRANSPORT    "trans-port"
+#define GC_CFG_DNSPORT      "dns-port"
+#define GC_CFG_DATADIR      "datadir"
+#define GC_CFG_RUNDIR       "rundir"
+/*
+#define GC_CFG_BRIDGES
+#define GC_CFG_HIDDENSERVICES
+*/
+
 typedef enum {
 	BRIDGE_OBFS4,
 	BRIDGE_MEEK,
