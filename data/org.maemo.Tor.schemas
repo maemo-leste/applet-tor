@@ -15,6 +15,18 @@
     </schema>
 
     <schema>
+      <key>/schemas/system/maemo/tor/Default/transproxy-enabled</key>
+      <applyto>/system/maemo/tor/Default/transproxy-enabled</applyto>
+      <owner>applet-tor</owner>
+      <type>bool</type>
+      <default>true</default>
+      <locale name="C">
+        <short>Tells if the configuration has transparent proxying enabled</short>
+        <long>Tells if the configuration has transparent system-wide proxying enabled.</long>
+      </locale>
+    </schema>
+
+    <schema>
       <key>/schemas/system/maemo/tor/Default/socks-port</key>
       <applyto>/system/maemo/tor/Default/socks-port</applyto>
       <owner>applet-tor</owner>
