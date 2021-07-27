@@ -105,19 +105,29 @@ static GtkWidget *new_main_dialog(GtkWindow * parent)
 	return dialog;
 }
 
-static void delete_config(GtkTreeView * tv)
+static gchar *get_sel_in_treeview(GtkTreeView * tv)
 {
 	GtkTreeSelection *sel = gtk_tree_view_get_selection(tv);
 	GtkTreeModel *model;
 	GtkTreeIter iter;
-	gchar *gconf_cfg, *sel_cfg;
-	GConfClient *gconf;
+	gchar *ret = NULL;
 
 	if (!gtk_tree_selection_get_selected(sel, &model, &iter))
+		return NULL;
+
+	gtk_tree_model_get(model, &iter, LIST_ITEM, &ret, -1);
+	return ret;
+}
+
+static void delete_config(GtkTreeView * tv)
+{
+	GConfClient *gconf;
+	gchar *gconf_cfg, *sel_cfg;
+
+	if (!(sel_cfg = get_sel_in_treeview(tv)))
 		return;
 
-	gtk_tree_model_get(model, &iter, 0, &sel_cfg, -1);
-
+	/* Don't allow deletion of the default config */
 	if (!strcmp(sel_cfg, "Default")) {
 		g_free(sel_cfg);
 		return;
@@ -136,25 +146,42 @@ static void delete_config(GtkTreeView * tv)
 	g_object_unref(gconf);
 }
 
+static struct wizard_data *fill_wizard_data_from_gconf(gchar * cfgname)
+{
+	/* GConfClient *gconf; */
+	/* struct wizard_data *w_data; */
+
+	/* TODO */
+
+	if (cfgname == NULL)
+		return NULL;
+
+	return NULL;
+}
+
 osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
 {
 	(void)osso;
 	(void)user_act;
 	gboolean config_done = FALSE;
 	GtkWidget *maindialog;
+	gchar *cfgname;
+	struct wizard_data *w_data;
 
+	/* TODO: Write a better way to refresh the tree view */
 	do {
-		/* TODO: Write a better way to refresh the tree view */
 		maindialog = new_main_dialog(GTK_WINDOW(data));
 		gtk_widget_show_all(maindialog);
 
-		/* TODO: Work on selected item in TreeView */
 		switch (gtk_dialog_run(GTK_DIALOG(maindialog))) {
 		case CONFIG_NEW:
 			gtk_widget_hide(maindialog);
 			start_new_wizard(NULL);
 			break;
 		case CONFIG_EDIT:
+			cfgname = get_sel_in_treeview(GTK_TREE_VIEW(cfg_tree));
+			w_data = fill_wizard_data_from_gconf(cfgname);
+			start_new_wizard(w_data);
 			break;
 		case CONFIG_DELETE:
 			delete_config(GTK_TREE_VIEW(cfg_tree));
