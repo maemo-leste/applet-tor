@@ -23,8 +23,8 @@
 #define xstr(x) str(x)
 */
 
-#define GC_TOR        "/system/maemo/tor"
-#define GC_TOR_ACTIVE GC_TOR"/active_config"
+#define GC_TOR         "/system/maemo/tor"
+#define GC_TOR_ACTIVE  GC_TOR"/active_config"
 
 #define GC_CFG_SOCKSPORT    "socks-port"
 #define GC_CFG_CONTROLPORT  "control-port"

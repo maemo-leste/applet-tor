@@ -25,6 +25,7 @@
 #include <hildon/hildon.h>
 #include <hildon-cp-plugin/hildon-cp-plugin-interface.h>
 
+#include "configuration.h"
 #include "wizard.h"
 
 enum {
@@ -39,8 +40,7 @@ enum {
 	N_COLUMNS
 };
 
-#define GC_TOR        "/system/maemo/tor"
-#define GC_TOR_ACTIVE GC_TOR"/active_config"
+GtkWidget *cfg_tree;
 
 static void add_to_treeview(GtkWidget * tv, const gchar * str)
 {
@@ -73,7 +73,7 @@ static void fill_treeview_from_gconf(GtkWidget * tv)
 
 static GtkWidget *new_main_dialog(GtkWindow * parent)
 {
-	GtkWidget *dialog, *tv;
+	GtkWidget *dialog;
 	GtkListStore *store;
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
@@ -85,24 +85,55 @@ static GtkWidget *new_main_dialog(GtkWindow * parent)
 					"Delete", CONFIG_DELETE,
 					"Done", CONFIG_DONE, NULL);
 
-	tv = gtk_tree_view_new();
-	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tv), FALSE);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), tv, TRUE, TRUE,
-			   0);
+	cfg_tree = gtk_tree_view_new();
+	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(cfg_tree), FALSE);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), cfg_tree, TRUE,
+			   TRUE, 0);
 
 	renderer = gtk_cell_renderer_text_new();
 	column = gtk_tree_view_column_new_with_attributes("Items",
 							  renderer, "text",
 							  LIST_ITEM, NULL);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(tv), column);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(cfg_tree), column);
 	store = gtk_list_store_new(1, G_TYPE_STRING);
-	gtk_tree_view_set_model(GTK_TREE_VIEW(tv), GTK_TREE_MODEL(store));
+	gtk_tree_view_set_model(GTK_TREE_VIEW(cfg_tree), GTK_TREE_MODEL(store));
 
 	g_object_unref(store);
 
-	fill_treeview_from_gconf(tv);
+	fill_treeview_from_gconf(cfg_tree);
 
 	return dialog;
+}
+
+static void delete_config(GtkTreeView * tv)
+{
+	GtkTreeSelection *sel = gtk_tree_view_get_selection(tv);
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	gchar *gconf_cfg, *sel_cfg;
+	GConfClient *gconf;
+
+	if (!gtk_tree_selection_get_selected(sel, &model, &iter))
+		return;
+
+	gtk_tree_model_get(model, &iter, 0, &sel_cfg, -1);
+
+	if (!strcmp(sel_cfg, "Default")) {
+		g_free(sel_cfg);
+		return;
+	}
+
+	/* TODO: Yes/No dialog? */
+
+	gconf_cfg = g_strjoin("/", GC_TOR, sel_cfg, NULL);
+
+	gconf = gconf_client_get_default();
+	gconf_client_recursive_unset(gconf, gconf_cfg, 0, NULL);
+	gconf_client_remove_dir(gconf, gconf_cfg, NULL);
+
+	g_free(sel_cfg);
+	g_free(gconf_cfg);
+	g_object_unref(gconf);
 }
 
 osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
@@ -112,11 +143,11 @@ osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
 	gboolean config_done = FALSE;
 	GtkWidget *maindialog;
 
-	maindialog = new_main_dialog(GTK_WINDOW(data));
-
-	gtk_widget_show_all(maindialog);
-
 	do {
+		/* TODO: Write a better way to refresh the tree view */
+		maindialog = new_main_dialog(GTK_WINDOW(data));
+		gtk_widget_show_all(maindialog);
+
 		/* TODO: Work on selected item in TreeView */
 		switch (gtk_dialog_run(GTK_DIALOG(maindialog))) {
 		case CONFIG_NEW:
@@ -126,6 +157,7 @@ osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
 		case CONFIG_EDIT:
 			break;
 		case CONFIG_DELETE:
+			delete_config(GTK_TREE_VIEW(cfg_tree));
 			break;
 		case CONFIG_DONE:
 		default:
@@ -133,9 +165,8 @@ osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
 			break;
 		}
 
+		gtk_widget_destroy(maindialog);
 	} while (!config_done);
-
-	gtk_widget_destroy(maindialog);
 
 	return OSSO_OK;
 }
