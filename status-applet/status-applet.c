@@ -38,8 +38,8 @@
 
 #define SETTINGS_RESPONSE -69
 
-#define GC_TOR        "/system/maemo/tor"
-#define GC_TOR_ACTIVE GC_TOR"/active_config"
+#define GC_TOR         "/system/maemo/tor"
+#define GC_TOR_ACTIVE  GC_TOR"/active_config"
 
 typedef struct _StatusAppletTor StatusAppletTor;
 typedef struct _StatusAppletTorClass StatusAppletTorClass;
@@ -71,6 +71,7 @@ struct _StatusAppletTorPrivate {
 	GtkWidget *settings_dialog;
 	GtkWidget *tor_chkbtn;
 	GtkWidget *config_btn;
+	GtkWidget *touch_selector;
 };
 
 HD_DEFINE_PLUGIN_MODULE_WITH_PRIVATE(StatusAppletTor, status_applet_tor,
@@ -80,25 +81,29 @@ HD_DEFINE_PLUGIN_MODULE_WITH_PRIVATE(StatusAppletTor, status_applet_tor,
 static void save_settings(StatusAppletTor * self)
 {
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+
 	p->active_config =
 	    hildon_touch_selector_get_current_text(HILDON_TOUCH_SELECTOR
-						   (p->config_btn));
+						   (p->touch_selector));
 
 	GConfClient *gconf = gconf_client_get_default();
 	gconf_client_set_string(gconf, GC_TOR_ACTIVE, p->active_config, NULL);
+	g_object_unref(gconf);
 }
 
-static void start_tor_daemon(StatusAppletTor * self)
+static void toggle_tor_daemon(StatusAppletTor * self)
 {
 	/* TODO: Generate torrc from gconf and start via fork&exec
 	 * This way we don't need privilege escalation. */
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
 
-	if (hildon_check_button_get_active(HILDON_CHECK_BUTTON(p->tor_chkbtn)))
+	if (hildon_check_button_get_active(HILDON_CHECK_BUTTON(p->tor_chkbtn))) {
 		status_debug("tor-sb: Starting Tor daemon");
-	else
+		/* TODO: Issue dbus call to start */
+	} else {
 		status_debug("tor-sb: Stopping Tor daemon");
-
+		/* TODO: Issue dbus call to stop */
+	}
 }
 
 static void execute_cp_plugin(GtkWidget * btn, StatusAppletTor * self)
@@ -119,7 +124,6 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
 	GtkWidget *toplevel = gtk_widget_get_toplevel(btn);
 	GtkSizeGroup *size_group;
-	GtkWidget *touch_selector;
 
 	gtk_widget_hide(toplevel);
 
@@ -137,18 +141,19 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	p->tor_chkbtn =
 	    hildon_check_button_new(HILDON_SIZE_FINGER_HEIGHT |
 				    HILDON_SIZE_AUTO_WIDTH);
-	gtk_button_set_label(GTK_BUTTON(p->tor_chkbtn), "Enable Tor daemon");
+	gtk_button_set_label(GTK_BUTTON(p->tor_chkbtn),
+			     "Enable system-wide Tor daemon");
 	hildon_check_button_set_active(HILDON_CHECK_BUTTON(p->tor_chkbtn),
 				       p->tor_running);
 
 	/* TODO: Connect with saved configurations from control panel */
 	size_group = gtk_size_group_new(GTK_SIZE_GROUP_HORIZONTAL);
-	touch_selector = hildon_touch_selector_new_text();
+	p->touch_selector = hildon_touch_selector_new_text();
 
 	p->config_btn = hildon_picker_button_new(HILDON_SIZE_FINGER_HEIGHT, 0);
 	hildon_picker_button_set_selector(HILDON_PICKER_BUTTON(p->config_btn),
 					  HILDON_TOUCH_SELECTOR
-					  (touch_selector));
+					  (p->touch_selector));
 	hildon_button_set_title(HILDON_BUTTON(p->config_btn),
 				"Current configuration");
 	hildon_button_set_alignment(HILDON_BUTTON(p->config_btn), 0.0, 0.5, 1.0,
@@ -161,16 +166,18 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	g_object_unref(gconf);
 
 	/* Counter for figuring out the active config */
-	int ac = 0, i = -1;
-
+	int i = -1;
 	for (iter = configs; iter; iter = iter->next) {
 		i++;
 		hildon_touch_selector_append_text(HILDON_TOUCH_SELECTOR
-						  (touch_selector),
+						  (p->touch_selector),
 						  g_path_get_basename
 						  (iter->data));
-		if (!strcmp(iter->data, p->active_config))
-			ac = i;
+
+		if (!strcmp(g_path_get_basename(iter->data), p->active_config))
+			hildon_touch_selector_set_active(HILDON_TOUCH_SELECTOR
+							 (p->touch_selector), 0,
+							 i);
 
 		g_free(iter->data);
 	}
@@ -179,10 +186,6 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 
 	hildon_button_add_title_size_group(HILDON_BUTTON(p->config_btn),
 					   size_group);
-
-	/* TODO: Select correct config */
-	hildon_touch_selector_set_active(HILDON_TOUCH_SELECTOR(touch_selector),
-					 0, ac);
 
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(p->settings_dialog)->vbox),
 			   p->tor_chkbtn, TRUE, TRUE, 0);
@@ -201,7 +204,7 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	switch (gtk_dialog_run(GTK_DIALOG(p->settings_dialog))) {
 	case GTK_RESPONSE_ACCEPT:
 		save_settings(self);
-		start_tor_daemon(self);
+		toggle_tor_daemon(self);
 		break;
 	case SETTINGS_RESPONSE:
 		execute_cp_plugin(btn, self);
@@ -209,12 +212,14 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 		break;
 	}
 
+	gtk_widget_hide_all(p->settings_dialog);
 	gtk_widget_destroy(p->settings_dialog);
 }
 
 static void status_applet_tor_set_icons(StatusAppletTor * self)
 {
-	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+	StatusAppletTor *sa = STATUS_APPLET_TOR(self);
+	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
 	GtkIconTheme *theme = gtk_icon_theme_get_default();
 	GdkPixbuf *menu_pixbuf = NULL;
 	GdkPixbuf *status_pixbuf = NULL;
@@ -354,9 +359,32 @@ static void status_applet_tor_init(StatusAppletTor * self)
 	gtk_widget_show_all(GTK_WIDGET(sa));
 }
 
+static void status_applet_tor_finalize(GObject * obj)
+{
+	StatusAppletTor *sa = STATUS_APPLET_TOR(obj);
+	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
+
+	if (p->dbus) {
+		dbus_bus_remove_match(p->dbus,
+				      "type='signal',interface='org.maemo.TorProvider.Running',member='Running'",
+				      NULL);
+		dbus_connection_remove_filter(p->dbus,
+					      (DBusHandleMessageFunction)
+					      on_icd_signal, sa);
+		dbus_connection_unref(p->dbus);
+		p->dbus = NULL;
+	}
+
+	if (p->osso)
+		osso_deinitialize(p->osso);
+
+	G_OBJECT_CLASS(status_applet_tor_parent_class)->finalize(obj);
+}
+
 static void status_applet_tor_class_init(StatusAppletTorClass * klass)
 {
-	(void)klass;
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
+	object_class->finalize = status_applet_tor_finalize;
 }
 
 static void status_applet_tor_class_finalize(StatusAppletTorClass * klass)
