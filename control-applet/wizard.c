@@ -30,20 +30,18 @@
 
 static void on_assistant_close_cancel(GtkWidget * widget, gpointer data)
 {
-	g_message("close/cancel");
 	(void)widget;
+
 	GtkWidget **assistant = (GtkWidget **) data;
 	gtk_widget_destroy(*assistant);
 	*assistant = NULL;
+
 	gtk_main_quit();
 }
 
 static gchar *gen_bridges_torrc(const gchar * entries)
 {
-	return g_strdup_printf("UseBridges 1\n"
-			       "ClientTransportPlugin obfs3 exec /usr/bin/obfsproxy managed\n"
-			       "ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy managed\n"
-			       "%s\n", entries);
+	return g_strdup_printf("%s\n%s\n", BRIDGES_CFG, entries);
 }
 
 static gint find_next_wizard_page(gint cur_page, gpointer data)
@@ -89,7 +87,9 @@ static void gconf_set_string(GConfClient * gconf, gchar * key, gchar * string)
 
 static void gconf_set_int(GConfClient * gconf, gchar * key, gint x)
 {
-	GConfValue *v = gconf_value_new(GCONF_VALUE_INT);
+	GConfValue *v;
+
+	v = gconf_value_new(GCONF_VALUE_INT);
 	gconf_value_set_int(v, x);
 	gconf_client_set(gconf, key, v, NULL);
 	gconf_value_free(v);
@@ -97,7 +97,6 @@ static void gconf_set_int(GConfClient * gconf, gchar * key, gint x)
 
 static void on_assistant_apply(GtkWidget * widget, gpointer data)
 {
-	g_message("apply");
 	struct wizard_data *w_data = data;
 	GConfClient *gconf = gconf_client_get_default();
 	gchar *gconf_socksport, *gconf_controlport, *gconf_dnsport,
@@ -304,6 +303,7 @@ static void validate_hiddenservices_cb(GtkWidget * widget, gpointer data)
 {
 	(void)widget;
 	(void)data;
+
 	return;
 }
 
@@ -369,7 +369,6 @@ static void validate_bridges_cb(GtkWidget * widget, gpointer data)
 
 	int i = 0, l = 0;
 	while (split[i] != NULL) {
-		g_message("split[%d]: %s", i, split[i]);
 		l += g_sprintf(brbuf + l, "bridge %s\n", split[i]);
 		i++;
 	}
@@ -596,7 +595,7 @@ static void new_wizard_main_page(struct wizard_data *w_data)
 	w_data->br_chk = gtk_check_button_new_with_label("Use Bridges");
 	w_data->hs_chk = gtk_check_button_new_with_label("Use Hidden Services");
 	w_data->ad_chk = gtk_check_button_new_with_label("Advanced Settings");
-	/* XXX: Implement */
+	/* TODO: Implement */
 	gtk_widget_set_sensitive(w_data->hs_chk, FALSE);
 
 	g_signal_connect(G_OBJECT(w_data->br_chk), "toggled",

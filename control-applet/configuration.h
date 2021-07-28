@@ -37,7 +37,13 @@
 #define GC_CFG_HIDDENSERVICES
 */
 
+#define BRIDGES_CFG \
+	"UseBridges 1\n" \
+	"ClientTransportPlugin obfs3 exec /usr/bin/obfsproxy managed\n" \
+	"ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy managed"
+
 typedef enum {
+	BRIDGE_OBFS3,
 	BRIDGE_OBFS4,
 	BRIDGE_MEEK,
 	BRIDGE_SCRAMBLESUIT
