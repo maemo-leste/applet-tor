@@ -33,6 +33,7 @@ struct wizard_data {
 	GtkWidget *name_entry;
 
 	GtkWidget *transproxy_chk;
+	gboolean transproxy_enabled;
 
 	gboolean has_bridges;
 	GtkWidget *br_chk;

@@ -75,7 +75,6 @@ static gint find_next_wizard_page(gint cur_page, gpointer data)
 	return -1;
 }
 
-/*
 static void gconf_set_string(GConfClient * gconf, gchar * key, gchar * string)
 {
 	GConfValue *v = gconf_value_new(GCONF_VALUE_STRING);
@@ -83,7 +82,6 @@ static void gconf_set_string(GConfClient * gconf, gchar * key, gchar * string)
 	gconf_client_set(gconf, key, v, NULL);
 	gconf_value_free(v);
 }
-*/
 
 static void gconf_set_int(GConfClient * gconf, gchar * key, gint x)
 {
@@ -95,12 +93,22 @@ static void gconf_set_int(GConfClient * gconf, gchar * key, gint x)
 	gconf_value_free(v);
 }
 
+static void gconf_set_bool(GConfClient * gconf, gchar * key, gboolean x)
+{
+	GConfValue *v;
+
+	v = gconf_value_new(GCONF_VALUE_BOOL);
+	gconf_value_set_bool(v, x);
+	gconf_client_set(gconf, key, v, NULL);
+	gconf_value_free(v);
+}
+
 static void on_assistant_apply(GtkWidget * widget, gpointer data)
 {
 	struct wizard_data *w_data = data;
 	GConfClient *gconf = gconf_client_get_default();
 	gchar *gconf_socksport, *gconf_controlport, *gconf_dnsport,
-	    *gconf_transport;
+	    *gconf_transport, *gconf_tpbool, *gconf_bridges, *gconf_hs;
 
 	w_data->config_name = gtk_entry_get_text(GTK_ENTRY(w_data->name_entry));
 	gchar *confname = g_strjoin("/", GC_TOR, w_data->config_name, NULL);
@@ -128,28 +136,49 @@ static void on_assistant_apply(GtkWidget * widget, gpointer data)
 			 (GTK_ENTRY(w_data->transport_entry)));
 	}
 
+	/* Tor SocksPort */
 	gconf_socksport = g_strjoin("/", confname, GC_CFG_SOCKSPORT, NULL);
 	gconf_set_int(gconf, gconf_socksport, w_data->socksport);
 	g_free(gconf_socksport);
 
+	/* Tor ControlPort */
 	gconf_controlport = g_strjoin("/", confname, GC_CFG_CONTROLPORT, NULL);
 	gconf_set_int(gconf, gconf_controlport, w_data->controlport);
 	g_free(gconf_controlport);
 
+	/* Tor DNSPort */
 	gconf_dnsport = g_strjoin("/", confname, GC_CFG_DNSPORT, NULL);
 	gconf_set_int(gconf, gconf_dnsport, w_data->dnsport);
 	g_free(gconf_dnsport);
 
-	/* TODO: if transproxy_chk is active, note the port. Perhaps the
-	 * availability of TransPort in gconf should signal that this config
-	 * is used for (or has) transparent proxying. Consider not writing
-	 * this value unless the checkbox is active?
-	 */
+	/* Check if this configuration has transparent-proxying enabled */
+	g_object_get(G_OBJECT(w_data->transproxy_chk), "active",
+		     &w_data->transproxy_enabled, NULL);
+	gconf_tpbool = g_strjoin("/", confname, GC_CFG_TPENABLED, NULL);
+	gconf_set_bool(gconf, gconf_tpbool, w_data->transproxy_enabled);
+	g_free(gconf_tpbool);
+
+	/* Tor TransPort */
 	gconf_transport = g_strjoin("/", confname, GC_CFG_TRANSPORT, NULL);
 	gconf_set_int(gconf, gconf_transport, w_data->transport);
 	g_free(gconf_transport);
 
-	/* TODO: Bridges, hidden services, datadirs */
+	/* If there are bridges set up, write them */
+	if (w_data->has_bridges) {
+		gconf_bridges = g_strjoin("/", confname, GC_CFG_BRIDGES, NULL);
+		gconf_set_string(gconf, gconf_bridges, w_data->bridges_data);
+		g_free(gconf_bridges);
+	}
+
+	/* If there are hidden services set up, write them */
+	if (w_data->has_hs) {
+		gconf_hs =
+		    g_strjoin("/", confname, GC_CFG_HIDDENSERVICES, NULL);
+		gconf_set_string(gconf, gconf_hs, w_data->hs_data);
+		g_free(gconf_hs);
+	}
+
+	/* TODO: datadirs */
 
 	g_object_unref(gconf);
 	g_free(confname);
@@ -402,6 +431,7 @@ static void validate_bridges_cb(GtkWidget * widget, gpointer data)
 	cmd = g_strdup_printf("/usr/bin/tor --verify-config -f %s", tmpfile);
 	switch (system(cmd)) {
 	case 0:
+		w_data->bridges_data = g_strdup(brbuf);
 		valid = TRUE;
 		break;
 	default:
