@@ -349,6 +349,7 @@ static void validate_bridges_cb(GtkWidget * widget, gpointer data)
 	GtkTextIter start, end;
 	GtkTextBuffer *buf;
 	gchar *text, *tmpfile, *cmd = NULL, *bridges_torrc = NULL;
+	gchar **split, brbuf[8192];
 	gboolean valid = FALSE;
 	gint fd;
 
@@ -358,7 +359,23 @@ static void validate_bridges_cb(GtkWidget * widget, gpointer data)
 	gtk_text_buffer_get_bounds(buf, &start, &end);
 	text = gtk_text_buffer_get_text(buf, &start, &end, FALSE);
 
-	bridges_torrc = gen_bridges_torrc(text);
+	/* Lazy check */
+	if (strlen(text) < 5) {
+		g_free(text);
+		return;
+	}
+
+	split = g_strsplit(text, "\n", -1);
+
+	int i = 0, l = 0;
+	while (split[i] != NULL) {
+		g_message("split[%d]: %s", i, split[i]);
+		l += g_sprintf(brbuf + l, "bridge %s\n", split[i]);
+		i++;
+	}
+	g_strfreev(split);
+
+	bridges_torrc = gen_bridges_torrc(brbuf);
 
 	tmpfile = g_strdup("/tmp/torrc-XXXXXX");
 
@@ -415,10 +432,7 @@ static gint new_wizard_bridges_page(struct wizard_data *w_data)
 	info =
 	    gtk_label_new
 	    ("Here you can input/paste and validate bridges.\n"
-	     "Make sure you prefix each line with \"bridge\"\n"
 	     "See https://bridges.torproject.org for more info.");
-
-	/* TODO: Don't require "bridge" prefix on lines, but add it later */
 
 	w_data->bridges_textview = gtk_text_view_new();
 
