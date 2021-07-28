@@ -102,7 +102,53 @@
       </locale>
     </schema>
 
-    <!-- TODO: Hidden services and bridges as arrays -->
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/bridges-enabled</key>
+      <applyto>/system/maemo/tor/Default/bridges-enabled</applyto>
+      <owner>applet-tor</owner>
+      <type>bool</type>
+      <default>false</default>
+      <locale name="C">
+		<short>Enable Bridges</short>
+		<long>Enable Tor Bridges</long>
+      </locale>
+    </schema>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/bridges</key>
+      <applyto>/schemas/system/maemo/tor/Default/bridges</applyto>
+      <owner>applet-tor</owner>
+      <type>string</type>
+      <default></default>
+      <locale name="C">
+		<short>Bridge entries</short>
+		<long>Tor Bridge entries</long>
+      </locale>
+    </schema>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/hiddenservices-enabled</key>
+      <applyto>/system/maemo/tor/Default/hiddenservices-enabled</applyto>
+      <owner>applet-tor</owner>
+      <type>bool</type>
+      <default>false</default>
+      <locale name="C">
+		<short>Enable Hidden Services</short>
+		<long>Enable Tor Hidden Services</long>
+      </locale>
+    </schema>
+
+    <schema>
+      <key>/schemas/system/maemo/tor/Default/hiddenservices</key>
+      <applyto>/schemas/system/maemo/tor/Default/hiddenservices</applyto>
+      <owner>applet-tor</owner>
+      <type>string</type>
+      <default></default>
+      <locale name="C">
+		<short>Hidden Service entries</short>
+		<long>Tor Hidden Service entries</long>
+      </locale>
+    </schema>
 
   </schemalist>
 </gconfschemafile>
