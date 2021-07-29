@@ -119,10 +119,12 @@ static gchar *get_sel_in_treeview(GtkTreeView * tv)
 	return ret;
 }
 
-static void delete_config(GtkTreeView * tv)
+static void delete_config(GtkWidget * parent, GtkTreeView * tv)
 {
 	GConfClient *gconf;
-	gchar *gconf_cfg, *sel_cfg;
+	gchar *gconf_cfg, *sel_cfg, *q;
+	GtkWidget *note;
+	gint i;
 
 	if (!(sel_cfg = get_sel_in_treeview(tv)))
 		return;
@@ -133,7 +135,21 @@ static void delete_config(GtkTreeView * tv)
 		return;
 	}
 
-	/* TODO: Yes/No dialog? */
+	q = g_strdup_printf
+	    ("Are you sure you want to delete the \"%s\" configuration?",
+	     sel_cfg);
+
+	note = hildon_note_new_confirmation(GTK_WINDOW(parent), q);
+	g_free(q);
+	gtk_window_set_transient_for(GTK_WINDOW(note), GTK_WINDOW(parent));
+
+	i = gtk_dialog_run(GTK_DIALOG(note));
+	gtk_object_destroy(GTK_OBJECT(note));
+
+	if (i != GTK_RESPONSE_OK) {
+		g_free(sel_cfg);
+		return;
+	}
 
 	gconf_cfg = g_strjoin("/", GC_TOR, sel_cfg, NULL);
 
@@ -184,7 +200,7 @@ osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
 			start_new_wizard(w_data);
 			break;
 		case CONFIG_DELETE:
-			delete_config(GTK_TREE_VIEW(cfg_tree));
+			delete_config(data, GTK_TREE_VIEW(cfg_tree));
 			break;
 		case CONFIG_DONE:
 		default:
