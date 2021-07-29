@@ -108,7 +108,8 @@ static void on_assistant_apply(GtkWidget * widget, gpointer data)
 	struct wizard_data *w_data = data;
 	GConfClient *gconf = gconf_client_get_default();
 	gchar *gconf_socksport, *gconf_controlport, *gconf_dnsport,
-	    *gconf_transport, *gconf_tpbool, *gconf_bridges, *gconf_hs;
+	    *gconf_transport, *gconf_tpbool, *gconf_brbool, *gconf_bridges,
+	    *gconf_hsbool, *gconf_hs;
 
 	w_data->config_name = gtk_entry_get_text(GTK_ENTRY(w_data->name_entry));
 	gchar *confname = g_strjoin("/", GC_TOR, w_data->config_name, NULL);
@@ -164,18 +165,26 @@ static void on_assistant_apply(GtkWidget * widget, gpointer data)
 	g_free(gconf_transport);
 
 	/* If there are bridges set up, write them */
-	if (w_data->has_bridges) {
+	if (w_data->bridges_data != NULL) {
 		gconf_bridges = g_strjoin("/", confname, GC_CFG_BRIDGES, NULL);
 		gconf_set_string(gconf, gconf_bridges, w_data->bridges_data);
 		g_free(gconf_bridges);
 	}
 
+	gconf_brbool = g_strjoin("/", confname, GC_CFG_BRIDGESENABLED, NULL);
+	gconf_set_bool(gconf, gconf_brbool, w_data->has_bridges);
+	g_free(gconf_brbool);
+
 	/* If there are hidden services set up, write them */
-	if (w_data->has_hs) {
+	if (w_data->hs_data != NULL) {
 		gconf_hs = g_strjoin("/", confname, GC_CFG_HS, NULL);
 		gconf_set_string(gconf, gconf_hs, w_data->hs_data);
 		g_free(gconf_hs);
 	}
+
+	gconf_hsbool = g_strjoin("/", confname, GC_CFG_HSENABLED, NULL);
+	gconf_set_bool(gconf, gconf_hsbool, w_data->has_hs);
+	g_free(gconf_hsbool);
 
 	/* TODO: datadirs */
 
@@ -337,6 +346,7 @@ static void validate_hiddenservices_cb(GtkWidget * widget, gpointer data)
 
 static gint new_wizard_hs_page(struct wizard_data *w_data)
 {
+	/* TODO */
 	/*
 	   HiddenServiceDir /var/lib/tor/my_website/
 	   HiddenServicePort 80 127.0.0.1:80
@@ -397,7 +407,8 @@ static void validate_bridges_cb(GtkWidget * widget, gpointer data)
 
 	int i = 0, l = 0;
 	while (split[i] != NULL) {
-		l += g_sprintf(brbuf + l, "bridge %s\n", split[i]);
+		if (strlen(split[i]) != 0)
+			l += g_sprintf(brbuf + l, "bridge %s\n", split[i]);
 		i++;
 	}
 	g_strfreev(split);
@@ -430,7 +441,7 @@ static void validate_bridges_cb(GtkWidget * widget, gpointer data)
 	cmd = g_strdup_printf("/usr/bin/tor --verify-config -f %s", tmpfile);
 	switch (system(cmd)) {
 	case 0:
-		w_data->bridges_data = g_strdup(brbuf);
+		w_data->bridges_data = g_strdup(text);
 		valid = TRUE;
 		break;
 	default:
@@ -463,6 +474,13 @@ static gint new_wizard_bridges_page(struct wizard_data *w_data)
 	     "See https://bridges.torproject.org for more info.");
 
 	w_data->bridges_textview = gtk_text_view_new();
+
+	if (w_data->bridges_data != NULL) {
+		GtkTextBuffer *buf = gtk_text_buffer_new(NULL);
+		gtk_text_buffer_set_text(buf, w_data->bridges_data, -1);
+		gtk_text_view_set_buffer(GTK_TEXT_VIEW
+					 (w_data->bridges_textview), buf);
+	}
 
 	validate_btn = gtk_button_new_with_label("Validate");
 
@@ -615,15 +633,30 @@ static void new_wizard_main_page(struct wizard_data *w_data)
 	name_label = gtk_label_new("Configuration name:");
 
 	w_data->name_entry = gtk_entry_new();
+	if (w_data->config_name != NULL)
+		gtk_entry_set_text(GTK_ENTRY(w_data->name_entry),
+				   w_data->config_name);
 
 	g_signal_connect(G_OBJECT(w_data->name_entry), "changed",
 			 G_CALLBACK(on_conf_name_entry_changed), w_data);
 
 	w_data->transproxy_chk =
 	    gtk_check_button_new_with_label("Enable Transparent Proxying");
+	if (w_data->transproxy_enabled)
+		g_object_set(G_OBJECT(w_data->transproxy_chk), "active", TRUE,
+			     NULL);
+
 	w_data->br_chk = gtk_check_button_new_with_label("Use Bridges");
+	if (w_data->has_bridges)
+		g_object_set(G_OBJECT(w_data->br_chk), "active", TRUE, NULL);
+
 	w_data->hs_chk = gtk_check_button_new_with_label("Use Hidden Services");
+	if (w_data->has_hs)
+		g_object_set(G_OBJECT(w_data->hs_chk), "active", TRUE, NULL);
+
+	/* TODO: When to make this one active? */
 	w_data->ad_chk = gtk_check_button_new_with_label("Advanced Settings");
+
 	/* TODO: Implement */
 	gtk_widget_set_sensitive(w_data->hs_chk, FALSE);
 
@@ -656,6 +689,18 @@ static void new_wizard_main_page(struct wizard_data *w_data)
 				     "Tor Configuration Wizard");
 	gtk_assistant_set_page_type(GTK_ASSISTANT(w_data->assistant),
 				    vbox, GTK_ASSISTANT_PAGE_CONFIRM);
+
+	if (w_data->config_name)
+		on_conf_name_entry_changed(w_data->name_entry, w_data);
+
+	if (w_data->has_bridges)
+		on_br_chk_btn_toggled(w_data->br_chk, w_data);
+
+	if (w_data->has_hs)
+		on_hs_chk_btn_toggled(w_data->hs_chk, w_data);
+
+	if (w_data->has_adv)
+		on_ad_chk_btn_toggled(w_data->ad_chk, w_data);
 }
 
 void start_new_wizard(gpointer config_data)
@@ -670,15 +715,9 @@ void start_new_wizard(gpointer config_data)
 		w_data->bridges_page = -1;
 		w_data->hs_page = -1;
 		w_data->adv_page = -1;
-		w_data->bridges_data = NULL;
-		w_data->hs_data = NULL;
-		w_data->socksport_entry = NULL;
 		w_data->socksport = 9050;
-		w_data->controlport_entry = NULL;
 		w_data->controlport = 9051;
-		w_data->dnsport_entry = NULL;
 		w_data->dnsport = 5353;
-		w_data->transport_entry = NULL;
 		w_data->transport = 9040;
 	} else {
 		w_data = config_data;
@@ -695,15 +734,6 @@ void start_new_wizard(gpointer config_data)
 					    w_data, NULL);
 
 	new_wizard_main_page(w_data);
-
-	if (w_data->has_bridges)
-		new_wizard_bridges_page(w_data);
-
-	if (w_data->has_hs)
-		new_wizard_hs_page(w_data);
-
-	if (w_data->has_adv)
-		new_wizard_adv_page(w_data);
 
 	g_signal_connect(G_OBJECT(w_data->assistant), "cancel",
 			 G_CALLBACK(on_assistant_close_cancel),

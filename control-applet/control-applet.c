@@ -164,15 +164,70 @@ static void delete_config(GtkWidget * parent, GtkTreeView * tv)
 
 static struct wizard_data *fill_wizard_data_from_gconf(gchar * cfgname)
 {
-	/* GConfClient *gconf; */
-	/* struct wizard_data *w_data; */
-
-	/* TODO */
+	GConfClient *gconf;
+	struct wizard_data *w_data;
+	gchar *config_path;
+	/* TODO: datadir & rundir */
+	gchar *g_socksport, *g_transproxy, *g_controlport, *g_transport,
+	    *g_dnsport, *g_brbool, *g_bridges, *g_hsbool, *g_hs;
+	gint socksport;
 
 	if (cfgname == NULL)
 		return NULL;
 
-	return NULL;
+	gconf = gconf_client_get_default();
+
+	config_path = g_strjoin("/", GC_TOR, cfgname, NULL);
+	g_transproxy = g_strjoin("/", config_path, GC_CFG_TPENABLED, NULL);
+	g_socksport = g_strjoin("/", config_path, GC_CFG_SOCKSPORT, NULL);
+	g_controlport = g_strjoin("/", config_path, GC_CFG_CONTROLPORT, NULL);
+	g_transport = g_strjoin("/", config_path, GC_CFG_TRANSPORT, NULL);
+	g_dnsport = g_strjoin("/", config_path, GC_CFG_DNSPORT, NULL);
+	g_brbool = g_strjoin("/", config_path, GC_CFG_BRIDGESENABLED, NULL);
+	g_bridges = g_strjoin("/", config_path, GC_CFG_BRIDGES, NULL);
+	g_hsbool = g_strjoin("/", config_path, GC_CFG_HSENABLED, NULL);
+	g_hs = g_strjoin("/", config_path, GC_CFG_HS, NULL);
+
+	socksport = gconf_client_get_int(gconf, g_socksport, NULL);
+	/* If there's no socksport, assume this is not a valid configuration */
+	if (socksport == 0)
+		goto out;
+
+	w_data = g_new0(struct wizard_data, 1);
+	w_data->config_name = cfgname;
+
+	w_data->socksport = socksport;
+
+	w_data->transproxy_enabled =
+	    gconf_client_get_bool(gconf, g_transproxy, NULL);
+
+	w_data->controlport = gconf_client_get_int(gconf, g_controlport, NULL);
+	w_data->transport = gconf_client_get_int(gconf, g_transport, NULL);
+	w_data->dnsport = gconf_client_get_int(gconf, g_dnsport, NULL);
+
+	w_data->has_bridges = gconf_client_get_bool(gconf, g_brbool, NULL);
+	w_data->bridges_data = gconf_client_get_string(gconf, g_bridges, NULL);
+
+	w_data->has_hs = gconf_client_get_bool(gconf, g_hsbool, NULL);
+	w_data->hs_data = gconf_client_get_string(gconf, g_hs, NULL);
+
+ out:
+	g_free(config_path);
+	g_free(g_transproxy);
+	g_free(g_socksport);
+	g_free(g_controlport);
+	g_free(g_transport);
+	g_free(g_dnsport);
+	g_free(g_brbool);
+	g_free(g_bridges);
+	g_free(g_hsbool);
+	g_free(g_hs);
+	g_object_unref(gconf);
+
+	if (socksport == 0)
+		return NULL;
+
+	return w_data;
 }
 
 osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
