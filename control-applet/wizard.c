@@ -172,8 +172,7 @@ static void on_assistant_apply(GtkWidget * widget, gpointer data)
 
 	/* If there are hidden services set up, write them */
 	if (w_data->has_hs) {
-		gconf_hs =
-		    g_strjoin("/", confname, GC_CFG_HIDDENSERVICES, NULL);
+		gconf_hs = g_strjoin("/", confname, GC_CFG_HS, NULL);
 		gconf_set_string(gconf, gconf_hs, w_data->hs_data);
 		g_free(gconf_hs);
 	}
@@ -664,6 +663,7 @@ void start_new_wizard(gpointer config_data)
 	struct wizard_data *w_data;
 	if (config_data == NULL) {
 		w_data = g_new0(struct wizard_data, 1);
+		w_data->transproxy_enabled = FALSE;
 		w_data->has_bridges = FALSE;
 		w_data->has_hs = FALSE;
 		w_data->has_adv = FALSE;

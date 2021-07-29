@@ -26,21 +26,24 @@
 #define GC_TOR         "/system/maemo/tor"
 #define GC_TOR_ACTIVE  GC_TOR"/active_config"
 
+#define GC_CFG_TPENABLED       "transproxy-enabled"
 #define GC_CFG_SOCKSPORT       "socks-port"
 #define GC_CFG_CONTROLPORT     "control-port"
 #define GC_CFG_TRANSPORT       "trans-port"
 #define GC_CFG_DNSPORT         "dns-port"
 #define GC_CFG_DATADIR         "datadir"
 #define GC_CFG_RUNDIR          "rundir"
-#define GC_CFG_TPENABLED       "transproxy-enabled"
 #define GC_CFG_BRIDGES         "bridges"
-#define GC_CFG_HIDDENSERVICES  "hiddenservices"
+#define GC_CFG_BRIDGESENABLED  "bridges-enabled"
+#define GC_CFG_HS              "hiddenservices"
+#define GC_CFG_HSENABLED       "hiddenservices-enabled"
 
 #define BRIDGES_CFG \
 	"UseBridges 1\n" \
 	"ClientTransportPlugin obfs3 exec /usr/bin/obfsproxy managed\n" \
 	"ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy managed"
 
+/* TODO: Implement something with the below structs */
 typedef enum {
 	BRIDGE_OBFS3,
 	BRIDGE_OBFS4,
