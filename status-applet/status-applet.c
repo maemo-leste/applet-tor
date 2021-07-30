@@ -234,6 +234,8 @@ static void status_applet_tor_set_icons(StatusAppletTor * self)
 		break;
 	case TOR_CONNECTING:
 		/* TODO: blink, use network-liveness from Tor control socket */
+		hildon_button_set_value(HILDON_BUTTON(p->menu_button),
+					"Connecting");
 		break;
 	case TOR_CONNECTED:
 		menu_pixbuf =
