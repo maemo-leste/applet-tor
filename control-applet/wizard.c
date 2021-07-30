@@ -109,7 +109,8 @@ static void on_assistant_apply(GtkWidget * widget, gpointer data)
 	GConfClient *gconf = gconf_client_get_default();
 	gchar *gconf_socksport, *gconf_controlport, *gconf_dnsport,
 	    *gconf_transport, *gconf_tpbool, *gconf_brbool, *gconf_bridges,
-	    *gconf_hsbool, *gconf_hs;
+	    *gconf_hsbool, *gconf_hs, *gconf_datadir, *gconf_rundir,
+	    *fs_datadir, *fs_rundir;
 
 	w_data->config_name = gtk_entry_get_text(GTK_ENTRY(w_data->name_entry));
 	gchar *confname = g_strjoin("/", GC_TOR, w_data->config_name, NULL);
@@ -186,14 +187,24 @@ static void on_assistant_apply(GtkWidget * widget, gpointer data)
 	gconf_set_bool(gconf, gconf_hsbool, w_data->has_hs);
 	g_free(gconf_hsbool);
 
-	/* TODO: datadirs */
+	gconf_datadir = g_strjoin("/", confname, GC_CFG_DATADIR, NULL);
+	fs_datadir = g_strjoin("/", TOR_DATADIRS, confname, NULL);
+	gconf_set_string(gconf, gconf_datadir, fs_datadir);
+	g_free(gconf_datadir);
+	g_free(fs_datadir);
 
-	g_object_unref(gconf);
+	gconf_rundir = g_strjoin("/", confname, GC_CFG_RUNDIR, NULL);
+	fs_rundir = g_strjoin("/", TOR_RUNDIRS, confname, NULL);
+	gconf_set_string(gconf, gconf_rundir, fs_rundir);
+	g_free(gconf_rundir);
+	g_free(fs_rundir);
+
 	g_free(confname);
+	g_object_unref(gconf);
 }
 
-static void on_assistant_prepare(GtkWidget * assistant, GtkWidget * page,
-				 gpointer data)
+static void on_assistant_prepare(GtkWidget * assistant,
+				 GtkWidget * page, gpointer data)
 {
 	struct wizard_data *w_data = data;
 

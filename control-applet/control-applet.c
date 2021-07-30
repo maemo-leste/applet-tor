@@ -167,10 +167,9 @@ static struct wizard_data *fill_wizard_data_from_gconf(gchar * cfgname)
 	GConfClient *gconf;
 	struct wizard_data *w_data;
 	gchar *config_path;
-	/* TODO: datadir & rundir */
+	gint socksport;
 	gchar *g_socksport, *g_transproxy, *g_controlport, *g_transport,
 	    *g_dnsport, *g_brbool, *g_bridges, *g_hsbool, *g_hs;
-	gint socksport;
 
 	if (cfgname == NULL)
 		return NULL;
