@@ -188,13 +188,13 @@ static void on_assistant_apply(GtkWidget * widget, gpointer data)
 	g_free(gconf_hsbool);
 
 	gconf_datadir = g_strjoin("/", confname, GC_CFG_DATADIR, NULL);
-	fs_datadir = g_strjoin("/", TOR_DATADIRS, confname, NULL);
+	fs_datadir = g_strjoin("/", TOR_DATADIRS, w_data->config_name, NULL);
 	gconf_set_string(gconf, gconf_datadir, fs_datadir);
 	g_free(gconf_datadir);
 	g_free(fs_datadir);
 
 	gconf_rundir = g_strjoin("/", confname, GC_CFG_RUNDIR, NULL);
-	fs_rundir = g_strjoin("/", TOR_RUNDIRS, confname, NULL);
+	fs_rundir = g_strjoin("/", TOR_RUNDIRS, w_data->config_name, NULL);
 	gconf_set_string(gconf, gconf_rundir, fs_rundir);
 	g_free(gconf_rundir);
 	g_free(fs_rundir);
