@@ -3,8 +3,8 @@
   <schemalist>
 
     <schema>
-      <key>/schemas/system/maemo/tor/active_config</key>
-      <applyto>/system/maemo/tor/active_config</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/active_config</key>
+      <applyto>/system/osso/connectivity/providers/tor/active_config</applyto>
       <owner>applet-tor</owner>
       <type>string</type>
       <default>Default</default>
@@ -15,8 +15,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/transproxy-enabled</key>
-      <applyto>/system/maemo/tor/Default/transproxy-enabled</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/transproxy-enabled</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/transproxy-enabled</applyto>
       <owner>applet-tor</owner>
       <type>bool</type>
       <default>true</default>
@@ -27,8 +27,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/socks-port</key>
-      <applyto>/system/maemo/tor/Default/socks-port</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/socks-port</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/socks-port</applyto>
       <owner>applet-tor</owner>
       <type>int</type>
       <default>9050</default>
@@ -39,8 +39,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/control-port</key>
-      <applyto>/system/maemo/tor/Default/control-port</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/control-port</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/control-port</applyto>
       <owner>applet-tor</owner>
       <type>int</type>
       <default>9051</default>
@@ -51,8 +51,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/trans-port</key>
-      <applyto>/system/maemo/tor/Default/trans-port</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/trans-port</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/trans-port</applyto>
       <owner>applet-tor</owner>
       <type>int</type>
       <default>9040</default>
@@ -63,8 +63,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/dns-port</key>
-      <applyto>/system/maemo/tor/Default/dns-port</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/dns-port</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/dns-port</applyto>
       <owner>applet-tor</owner>
       <type>int</type>
       <default>5353</default>
@@ -75,8 +75,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/datadir</key>
-      <applyto>/system/maemo/tor/Default/datadir</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/datadir</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/datadir</applyto>
       <owner>applet-tor</owner>
       <type>string</type>
       <default>/var/lib/tor-applet/datadir/Default</default>
@@ -87,8 +87,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/rundir</key>
-      <applyto>/system/maemo/tor/Default/rundir</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/rundir</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/rundir</applyto>
       <owner>applet-tor</owner>
       <type>string</type>
       <default>/run/tor-applet/Default</default>
@@ -99,8 +99,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/bridges-enabled</key>
-      <applyto>/system/maemo/tor/Default/bridges-enabled</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/bridges-enabled</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/bridges-enabled</applyto>
       <owner>applet-tor</owner>
       <type>bool</type>
       <default>false</default>
@@ -111,8 +111,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/bridges</key>
-      <applyto>/schemas/system/maemo/tor/Default/bridges</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/bridges</key>
+      <applyto>/schemas/system/osso/connectivity/providers/tor/Default/bridges</applyto>
       <owner>applet-tor</owner>
       <type>string</type>
       <default></default>
@@ -123,8 +123,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/hiddenservices-enabled</key>
-      <applyto>/system/maemo/tor/Default/hiddenservices-enabled</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/hiddenservices-enabled</key>
+      <applyto>/system/osso/connectivity/providers/tor/Default/hiddenservices-enabled</applyto>
       <owner>applet-tor</owner>
       <type>bool</type>
       <default>false</default>
@@ -135,8 +135,8 @@
     </schema>
 
     <schema>
-      <key>/schemas/system/maemo/tor/Default/hiddenservices</key>
-      <applyto>/schemas/system/maemo/tor/Default/hiddenservices</applyto>
+      <key>/schemas/system/osso/connectivity/providers/tor/Default/hiddenservices</key>
+      <applyto>/schemas/system/osso/connectivity/providers/tor/Default/hiddenservices</applyto>
       <owner>applet-tor</owner>
       <type>string</type>
       <default></default>
