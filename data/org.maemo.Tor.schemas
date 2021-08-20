@@ -79,9 +79,7 @@
       <applyto>/system/maemo/tor/Default/datadir</applyto>
       <owner>applet-tor</owner>
       <type>string</type>
-      <!-- Supposed to append the config name when creating -->
-      <!-- So this becomes datadir-Default -->
-      <default>/home/user/.local/tor-applet/datadir-</default>
+      <default>/var/lib/tor-applet/datadir/Default</default>
       <locale name="C">
         <short>Tor DataDir</short>
         <long>Path to Tor's datadir where certain necessary files shall be stored</long>
@@ -93,9 +91,7 @@
       <applyto>/system/maemo/tor/Default/rundir</applyto>
       <owner>applet-tor</owner>
       <type>string</type>
-      <!-- Supposed to append the config name when creating -->
-      <!-- So this becomes tor-applet/Default -->
-      <default>/run/tor-applet/</default>
+      <default>/run/tor-applet/Default</default>
       <locale name="C">
         <short>Tor RunDir</short>
         <long>Path to Tor's runtime data directory</long>
