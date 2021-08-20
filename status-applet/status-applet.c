@@ -38,8 +38,12 @@
 
 #define SETTINGS_RESPONSE -69
 
-#define GC_TOR         "/system/maemo/tor"
+#define GC_TOR         "/system/osso/connectivity/providers/tor"
 #define GC_TOR_ACTIVE  GC_TOR"/active_config"
+
+#define DBUS_IFACE  "org.maemo.TorProvider.Running"
+#define DBUS_MEMBER "Running"
+#define DBUS_SIGNAL "type='signal',interface='"DBUS_IFACE"',member='"DBUS_MEMBER"'"
 
 typedef struct _StatusAppletTor StatusAppletTor;
 typedef struct _StatusAppletTorClass StatusAppletTorClass;
@@ -81,21 +85,29 @@ HD_DEFINE_PLUGIN_MODULE_WITH_PRIVATE(StatusAppletTor, status_applet_tor,
 static void save_settings(StatusAppletTor * self)
 {
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+	GConfClient *gconf = gconf_client_get_default();
+	gchar *saved_config;
 
 	p->active_config =
 	    hildon_touch_selector_get_current_text(HILDON_TOUCH_SELECTOR
 						   (p->touch_selector));
 
-	GConfClient *gconf = gconf_client_get_default();
-	gconf_client_set_string(gconf, GC_TOR_ACTIVE, p->active_config, NULL);
+	saved_config = gconf_client_get_string(gconf, GC_TOR_ACTIVE, NULL);
+
+	if (g_strcmp0(saved_config, p->active_config)) {
+		/* TODO: Poke the Tor daemon since the config has changed */
+		gconf_client_set_string(gconf, GC_TOR_ACTIVE, p->active_config,
+					NULL);
+	}
+
 	g_object_unref(gconf);
 }
 
 static void toggle_tor_daemon(StatusAppletTor * self)
 {
-	/* TODO: Generate torrc from gconf and start via fork&exec
-	 * This way we don't need privilege escalation. */
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+
+	/* TODO: Needs state if Tor is running by provide or not */
 
 	if (hildon_check_button_get_active(HILDON_CHECK_BUTTON(p->tor_chkbtn))) {
 		status_debug("tor-sb: Starting Tor daemon");
@@ -192,9 +204,9 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(p->settings_dialog)->vbox),
 			   p->config_btn, TRUE, TRUE, 0);
 
-	/* Make the buttons insensitive when provider is connected.
-	 * At this time the daemon is controlled by icd and not this applet.
-	 */
+	/* TODO: Make the buttons insensitive when provider is connected? */
+	/* TODO: Maybe also, if the provider is connected, list only configs
+	 * supporting transparent proxying? */
 	if (p->provider_connected) {
 		gtk_widget_set_sensitive(p->tor_chkbtn, FALSE);
 		gtk_widget_set_sensitive(p->config_btn, FALSE);
@@ -248,7 +260,7 @@ static void status_applet_tor_set_icons(StatusAppletTor * self)
 					"Connected");
 		break;
 	default:
-		g_critical("%s: Invalid connection_state", G_STRLOC);
+		status_debug("%s: Invalid connection_state", G_STRLOC);
 		break;
 	};
 
@@ -288,8 +300,7 @@ static int on_icd_signal(DBusConnection * dbus, DBusMessage * msg, gpointer obj)
 {
 	(void)dbus;
 
-	if (dbus_message_is_signal
-	    (msg, "org.maemo.TorProvider.Running", "Running"))
+	if (dbus_message_is_signal(msg, DBUS_IFACE, DBUS_MEMBER))
 		return handle_running(obj, msg);
 
 	return 1;
@@ -306,11 +317,8 @@ static void setup_dbus_matching(StatusAppletTor * self)
 
 	dbus_connection_setup_with_g_main(p->dbus, NULL);
 
-	if (p->dbus) {
-		dbus_bus_add_match(p->dbus,
-				   "type='signal',interface='org.maemo.TorProvider.Running',member='Running'",
-				   NULL);
-	}
+	if (p->dbus)
+		dbus_bus_add_match(p->dbus, DBUS_SIGNAL, NULL);
 
 	if (!dbus_connection_add_filter
 	    (p->dbus, (DBusHandleMessageFunction) on_icd_signal, self, NULL)) {
@@ -367,9 +375,7 @@ static void status_applet_tor_finalize(GObject * obj)
 	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
 
 	if (p->dbus) {
-		dbus_bus_remove_match(p->dbus,
-				      "type='signal',interface='org.maemo.TorProvider.Running',member='Running'",
-				      NULL);
+		dbus_bus_remove_match(p->dbus, DBUS_SIGNAL, NULL);
 		dbus_connection_remove_filter(p->dbus,
 					      (DBusHandleMessageFunction)
 					      on_icd_signal, sa);
