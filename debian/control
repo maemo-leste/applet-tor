@@ -12,6 +12,7 @@ Build-Depends:
  libosso-dev,
  libgconf2-dev,
  libdbus-1-dev,
+ libconnui-dev,
 Standards-Version: 4.3.0
 
 Package: status-area-tor
