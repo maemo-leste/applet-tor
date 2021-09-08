@@ -3,29 +3,6 @@
   <schemalist>
 
     <schema>
-      <key>/schemas/system/osso/connectivity/network_type/TOR/active_config</key>
-      <applyto>/system/osso/connectivity/network_type/TOR/active_config</applyto>
-      <owner>applet-tor</owner>
-      <type>string</type>
-      <default>Default</default>
-      <locale name="C">
-        <short>Active Tor configuration</short>
-        <long>This key contains the selected active Tor configuration</long>
-      </locale>
-    </schema>
-
-    <schema>
-      <key>/schemas/system/osso/connectivity/network_type/TOR/system_wide_enabled</key>
-      <applyto>/system/osso/connectivity/network_type/TOR/system_wide_enabled</applyto>
-      <owner>applet-tor</owner>
-      <type>bool</type>
-      <locale name="C">
-        <short>If system-wide proxying is enabled by the status applet</short>
-        <long>If system-wide proxying is enabled by the status applet</short>
-      </locale>
-    </schema>
-
-    <schema>
       <key>/schemas/system/osso/connectivity/providers/tor/Default/transproxy-enabled</key>
       <applyto>/system/osso/connectivity/providers/tor/Default/transproxy-enabled</applyto>
       <owner>applet-tor</owner>
