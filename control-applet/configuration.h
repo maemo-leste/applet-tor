@@ -26,8 +26,9 @@
 #define TOR_DATADIRS  "/var/lib/tor-applet"
 #define TOR_RUNDIRS   "/run/tor-applet"
 
+#define GC_TOR_ACTIVE  "/system/osso/connectivity/network_type/TOR/active_config"
+
 #define GC_TOR         "/system/osso/connectivity/providers/tor"
-#define GC_TOR_ACTIVE  GC_TOR"/active_config"
 #define GC_TOR_ICD_AVAILABLE_IDS "/system/osso/connectivity/srv_provider/TOR/available_ids"
 
 #define GC_CFG_TPENABLED       "transproxy-enabled"

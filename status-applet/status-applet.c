@@ -39,7 +39,10 @@
 #define SETTINGS_RESPONSE -69
 
 #define GC_TOR         "/system/osso/connectivity/providers/tor"
-#define GC_TOR_ACTIVE  GC_TOR"/active_config"
+
+#define GC_NETWORK_TYPE "/system/osso/connectivity/network_type/TOR"
+#define GC_TOR_ACTIVE  GC_NETWORK_TYPE"/active_config"
+#define GC_TOR_SYSTEM  GC_NETWORK_TYPE"/system_wide_enabled"
 
 #define DBUS_IFACE  "org.maemo.TorProvider.Running"
 #define DBUS_MEMBER "Running"
@@ -86,6 +89,7 @@ static void save_settings(StatusAppletTor * self)
 {
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
 	GConfClient *gconf = gconf_client_get_default();
+	gboolean old_systemwide_enabled, new_systemwide_enabled;
 	gchar *saved_config;
 
 	p->active_config =
@@ -99,6 +103,18 @@ static void save_settings(StatusAppletTor * self)
 		gconf_client_set_string(gconf, GC_TOR_ACTIVE, p->active_config,
 					NULL);
 	}
+
+	old_systemwide_enabled =
+	    gconf_client_get_bool(gconf, GC_TOR_SYSTEM, NULL);
+
+	new_systemwide_enabled =
+	    hildon_check_button_get_active(HILDON_CHECK_BUTTON(p->tor_chkbtn));
+
+	if (old_systemwide_enabled != new_systemwide_enabled)
+		gconf_client_set_bool(gconf, GC_TOR_SYSTEM,
+				      hildon_check_button_get_active
+				      (HILDON_CHECK_BUTTON(p->tor_chkbtn)),
+				      NULL);
 
 	g_object_unref(gconf);
 }
