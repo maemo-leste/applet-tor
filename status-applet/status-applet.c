@@ -173,8 +173,6 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 				    HILDON_SIZE_AUTO_WIDTH);
 	gtk_button_set_label(GTK_BUTTON(p->tor_chkbtn),
 			     "Enable system-wide Tor daemon");
-	hildon_check_button_set_active(HILDON_CHECK_BUTTON(p->tor_chkbtn),
-				       p->tor_running);
 
 	/* TODO: Connect with saved configurations from control panel */
 	size_group = gtk_size_group_new(GTK_SIZE_GROUP_HORIZONTAL);
@@ -193,6 +191,11 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	GConfClient *gconf = gconf_client_get_default();
 	GSList *configs, *iter;
 	configs = gconf_client_all_dirs(gconf, GC_TOR, NULL);
+
+	hildon_check_button_set_active(HILDON_CHECK_BUTTON(p->tor_chkbtn),
+				       gconf_client_get_bool(gconf,
+							     GC_TOR_SYSTEM,
+							     NULL));
 	g_object_unref(gconf);
 
 	/* Counter for figuring out the active config */
