@@ -97,6 +97,8 @@ static void save_settings(StatusAppletTor * self)
 						   (p->touch_selector));
 
 	saved_config = gconf_client_get_string(gconf, GC_TOR_ACTIVE, NULL);
+	if (saved_config == NULL)
+		return;
 
 	if (g_strcmp0(saved_config, p->active_config)) {
 		/* TODO: Poke the Tor daemon since the config has changed */
@@ -365,6 +367,8 @@ static void status_applet_tor_init(StatusAppletTor * self)
 	gconf = gconf_client_get_default();
 	p->active_config = gconf_client_get_string(gconf, GC_TOR_ACTIVE, NULL);
 	g_object_unref(gconf);
+	if (p->active_config == NULL)
+		p->active_config = "Default";
 
 	/* Gtk items */
 	p->menu_button =
