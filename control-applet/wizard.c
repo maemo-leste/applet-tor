@@ -24,6 +24,7 @@
 
 #include <hildon/hildon.h>
 #include <hildon-cp-plugin/hildon-cp-plugin-interface.h>
+#include <icd/tor/libicd_tor_shared.h>
 
 #include "configuration.h"
 #include "wizard.h"
@@ -139,61 +140,61 @@ static void on_assistant_apply(GtkWidget * widget, gpointer data)
 	}
 
 	/* Tor SocksPort */
-	gconf_socksport = g_strjoin("/", confname, GC_CFG_SOCKSPORT, NULL);
+	gconf_socksport = g_strjoin("/", confname, GC_SOCKSPORT, NULL);
 	gconf_set_int(gconf, gconf_socksport, w_data->socksport);
 	g_free(gconf_socksport);
 
 	/* Tor ControlPort */
-	gconf_controlport = g_strjoin("/", confname, GC_CFG_CONTROLPORT, NULL);
+	gconf_controlport = g_strjoin("/", confname, GC_CONTROLPORT, NULL);
 	gconf_set_int(gconf, gconf_controlport, w_data->controlport);
 	g_free(gconf_controlport);
 
 	/* Tor DNSPort */
-	gconf_dnsport = g_strjoin("/", confname, GC_CFG_DNSPORT, NULL);
+	gconf_dnsport = g_strjoin("/", confname, GC_DNSPORT, NULL);
 	gconf_set_int(gconf, gconf_dnsport, w_data->dnsport);
 	g_free(gconf_dnsport);
 
 	/* Check if this configuration has transparent-proxying enabled */
 	g_object_get(G_OBJECT(w_data->transproxy_chk), "active",
 		     &w_data->transproxy_enabled, NULL);
-	gconf_tpbool = g_strjoin("/", confname, GC_CFG_TPENABLED, NULL);
+	gconf_tpbool = g_strjoin("/", confname, GC_TPENABLED, NULL);
 	gconf_set_bool(gconf, gconf_tpbool, w_data->transproxy_enabled);
 	g_free(gconf_tpbool);
 
 	/* Tor TransPort */
-	gconf_transport = g_strjoin("/", confname, GC_CFG_TRANSPORT, NULL);
+	gconf_transport = g_strjoin("/", confname, GC_TRANSPORT, NULL);
 	gconf_set_int(gconf, gconf_transport, w_data->transport);
 	g_free(gconf_transport);
 
 	/* If there are bridges set up, write them */
 	if (w_data->bridges_data != NULL) {
-		gconf_bridges = g_strjoin("/", confname, GC_CFG_BRIDGES, NULL);
+		gconf_bridges = g_strjoin("/", confname, GC_BRIDGES, NULL);
 		gconf_set_string(gconf, gconf_bridges, w_data->bridges_data);
 		g_free(gconf_bridges);
 	}
 
-	gconf_brbool = g_strjoin("/", confname, GC_CFG_BRIDGESENABLED, NULL);
+	gconf_brbool = g_strjoin("/", confname, GC_BRIDGESENABLED, NULL);
 	gconf_set_bool(gconf, gconf_brbool, w_data->has_bridges);
 	g_free(gconf_brbool);
 
 	/* If there are hidden services set up, write them */
 	if (w_data->hs_data != NULL) {
-		gconf_hs = g_strjoin("/", confname, GC_CFG_HS, NULL);
+		gconf_hs = g_strjoin("/", confname, GC_HIDDENSERVICES, NULL);
 		gconf_set_string(gconf, gconf_hs, w_data->hs_data);
 		g_free(gconf_hs);
 	}
 
-	gconf_hsbool = g_strjoin("/", confname, GC_CFG_HSENABLED, NULL);
+	gconf_hsbool = g_strjoin("/", confname, GC_HSENABLED, NULL);
 	gconf_set_bool(gconf, gconf_hsbool, w_data->has_hs);
 	g_free(gconf_hsbool);
 
-	gconf_datadir = g_strjoin("/", confname, GC_CFG_DATADIR, NULL);
+	gconf_datadir = g_strjoin("/", confname, GC_DATADIR, NULL);
 	fs_datadir = g_strjoin("/", TOR_DATADIRS, w_data->config_name, NULL);
 	gconf_set_string(gconf, gconf_datadir, fs_datadir);
 	g_free(gconf_datadir);
 	g_free(fs_datadir);
 
-	gconf_rundir = g_strjoin("/", confname, GC_CFG_RUNDIR, NULL);
+	gconf_rundir = g_strjoin("/", confname, GC_RUNDIR, NULL);
 	fs_rundir = g_strjoin("/", TOR_RUNDIRS, w_data->config_name, NULL);
 	gconf_set_string(gconf, gconf_rundir, fs_rundir);
 	g_free(gconf_rundir);

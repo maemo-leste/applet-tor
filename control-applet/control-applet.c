@@ -25,7 +25,7 @@
 #include <hildon/hildon.h>
 #include <hildon-cp-plugin/hildon-cp-plugin-interface.h>
 #include <connui/connui-log.h>
-
+#include <icd/tor/libicd_tor_shared.h>
 
 #include "configuration.h"
 #include "wizard.h"
@@ -83,17 +83,19 @@ static void update_available_ids(void)
 	configs = gconf_client_all_dirs(gconf, GC_TOR, NULL);
 
 	for (iter = configs; iter; iter = iter->next) {
-		char* basename = g_path_get_basename(iter->data);
+		char *basename = g_path_get_basename(iter->data);
 		g_free(iter->data);
 		iter->data = basename;
 	}
 
-	 gconf_client_set_list(gconf, GC_TOR_ICD_AVAILABLE_IDS, GCONF_VALUE_STRING, configs, &error);
+	gconf_client_set_list(gconf, GC_ICD_TOR_AVAILABLE_IDS,
+			      GCONF_VALUE_STRING, configs, &error);
 
-	 if (error) {
-		ULOG_WARN("Unable to write %s: %s", GC_TOR_ICD_AVAILABLE_IDS, error->message);
+	if (error) {
+		ULOG_WARN("Unable to write %s: %s", GC_ICD_TOR_AVAILABLE_IDS,
+			  error->message);
 		g_error_free(error);
-	 }
+	}
 
 	g_object_unref(gconf);
 	g_slist_free(iter);
@@ -206,15 +208,15 @@ static struct wizard_data *fill_wizard_data_from_gconf(gchar * cfgname)
 	gconf = gconf_client_get_default();
 
 	config_path = g_strjoin("/", GC_TOR, cfgname, NULL);
-	g_transproxy = g_strjoin("/", config_path, GC_CFG_TPENABLED, NULL);
-	g_socksport = g_strjoin("/", config_path, GC_CFG_SOCKSPORT, NULL);
-	g_controlport = g_strjoin("/", config_path, GC_CFG_CONTROLPORT, NULL);
-	g_transport = g_strjoin("/", config_path, GC_CFG_TRANSPORT, NULL);
-	g_dnsport = g_strjoin("/", config_path, GC_CFG_DNSPORT, NULL);
-	g_brbool = g_strjoin("/", config_path, GC_CFG_BRIDGESENABLED, NULL);
-	g_bridges = g_strjoin("/", config_path, GC_CFG_BRIDGES, NULL);
-	g_hsbool = g_strjoin("/", config_path, GC_CFG_HSENABLED, NULL);
-	g_hs = g_strjoin("/", config_path, GC_CFG_HS, NULL);
+	g_transproxy = g_strjoin("/", config_path, GC_TPENABLED, NULL);
+	g_socksport = g_strjoin("/", config_path, GC_SOCKSPORT, NULL);
+	g_controlport = g_strjoin("/", config_path, GC_CONTROLPORT, NULL);
+	g_transport = g_strjoin("/", config_path, GC_TRANSPORT, NULL);
+	g_dnsport = g_strjoin("/", config_path, GC_DNSPORT, NULL);
+	g_brbool = g_strjoin("/", config_path, GC_BRIDGESENABLED, NULL);
+	g_bridges = g_strjoin("/", config_path, GC_BRIDGES, NULL);
+	g_hsbool = g_strjoin("/", config_path, GC_HSENABLED, NULL);
+	g_hs = g_strjoin("/", config_path, GC_HIDDENSERVICES, NULL);
 
 	socksport = gconf_client_get_int(gconf, g_socksport, NULL);
 	/* If there's no socksport, assume this is not a valid configuration */
@@ -294,7 +296,7 @@ osso_return_t execute(osso_context_t * osso, gpointer data, gboolean user_act)
 		gtk_widget_destroy(maindialog);
 	} while (!config_done);
 
-	 update_available_ids();
+	update_available_ids();
 
 	return OSSO_OK;
 }

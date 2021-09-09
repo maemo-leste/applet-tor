@@ -26,23 +26,6 @@
 #define TOR_DATADIRS  "/var/lib/tor-applet"
 #define TOR_RUNDIRS   "/run/tor-applet"
 
-#define GC_TOR_ACTIVE  "/system/osso/connectivity/network_type/TOR/active_config"
-
-#define GC_TOR         "/system/osso/connectivity/providers/tor"
-#define GC_TOR_ICD_AVAILABLE_IDS "/system/osso/connectivity/srv_provider/TOR/available_ids"
-
-#define GC_CFG_TPENABLED       "transproxy-enabled"
-#define GC_CFG_SOCKSPORT       "socks-port"
-#define GC_CFG_CONTROLPORT     "control-port"
-#define GC_CFG_TRANSPORT       "trans-port"
-#define GC_CFG_DNSPORT         "dns-port"
-#define GC_CFG_DATADIR         "datadir"
-#define GC_CFG_RUNDIR          "rundir"
-#define GC_CFG_BRIDGES         "bridges"
-#define GC_CFG_BRIDGESENABLED  "bridges-enabled"
-#define GC_CFG_HS              "hiddenservices"
-#define GC_CFG_HSENABLED       "hiddenservices-enabled"
-
 #define BRIDGES_CFG \
 	"UseBridges 1\n" \
 	"ClientTransportPlugin obfs3 exec /usr/bin/obfsproxy managed\n" \

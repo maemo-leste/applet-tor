@@ -13,14 +13,21 @@ Build-Depends:
  libgconf2-dev,
  libdbus-1-dev,
  libconnui-dev,
+ libicd-tor-dev,
 Standards-Version: 4.3.0
 
 Package: status-area-tor
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, tor
+Depends: ${misc:Depends}, ${shlibs:Depends},
+ tor,
+ libicd-network-tor,
+ libicd-provider-tor,
 Description: Tor status area applet
 
 Package: control-panel-tor
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends},
+ tor,
+ libicd-network-tor,
+ libicd-provider-tor,
 Description: Tor control panel applet

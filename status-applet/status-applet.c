@@ -27,6 +27,7 @@
 #include <hildon/hildon.h>
 #include <libhildondesktop/libhildondesktop.h>
 #include <libosso.h>
+#include <icd/tor/libicd_tor_shared.h>
 
 /* Use this for debugging */
 #include <syslog.h>
@@ -38,20 +39,7 @@
 
 #define SETTINGS_RESPONSE -69
 
-#define GC_TOR           "/system/osso/connectivity/providers/tor"
-#define GC_TOR_TPENABLED "transproxy-enabled"
-
-#define GC_NETWORK_TYPE "/system/osso/connectivity/network_type/TOR"
-#define GC_TOR_ACTIVE   GC_NETWORK_TYPE"/active_config"
-#define GC_TOR_SYSTEM   GC_NETWORK_TYPE"/system_wide_enabled"
-
-#define DBUS_IFACE       "org.maemo.Tor"
-#define DBUS_PATH        "/org/maemo/Tor"
-#define DBUS_MEMBER      "StatusChanged"
-#define SIGNAL_CONNECTED "Connected"
-#define SIGNAL_STARTED   "Started"
-#define SIGNAL_STOPPED   "Stopped"
-#define DBUS_SIGNAL "type='signal',interface='"DBUS_IFACE"',member='"DBUS_MEMBER"'"
+#define DBUS_SIGNAL "type='signal',interface='"ICD_TOR_DBUS_INTERFACE"',member='"ICD_TOR_SIGNAL_STATUSCHANGED"'"
 
 typedef struct _StatusAppletTor StatusAppletTor;
 typedef struct _StatusAppletTorClass StatusAppletTorClass;
@@ -326,11 +314,11 @@ static int handle_running(gpointer obj, DBusMessage * msg)
 	dbus_message_get_args(msg, NULL, DBUS_TYPE_STRING,
 			      &status, DBUS_TYPE_INVALID);
 
-	if (!g_strcmp0(status, SIGNAL_CONNECTED))
+	if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_CONNECTED))
 		p->connection_state = TOR_CONNECTED;
-	else if (!g_strcmp0(status, SIGNAL_STARTED))
+	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STARTED))
 		p->connection_state = TOR_CONNECTING;
-	else if (!g_strcmp0(status, SIGNAL_STOPPED))
+	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STOPPED))
 		p->connection_state = TOR_NOT_CONNECTED;
 
 	status_applet_tor_set_icons(obj);
@@ -342,7 +330,8 @@ static int on_icd_signal(DBusConnection * dbus, DBusMessage * msg, gpointer obj)
 {
 	(void)dbus;
 
-	if (dbus_message_is_signal(msg, DBUS_IFACE, DBUS_MEMBER))
+	if (dbus_message_is_signal
+	    (msg, ICD_TOR_DBUS_INTERFACE, ICD_TOR_SIGNAL_STATUSCHANGED))
 		return handle_running(obj, msg);
 
 	return 1;
