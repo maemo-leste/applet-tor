@@ -38,14 +38,19 @@
 
 #define SETTINGS_RESPONSE -69
 
-#define GC_TOR         "/system/osso/connectivity/providers/tor"
+#define GC_TOR           "/system/osso/connectivity/providers/tor"
+#define GC_TOR_TPENABLED "transproxy-enabled"
 
 #define GC_NETWORK_TYPE "/system/osso/connectivity/network_type/TOR"
-#define GC_TOR_ACTIVE  GC_NETWORK_TYPE"/active_config"
-#define GC_TOR_SYSTEM  GC_NETWORK_TYPE"/system_wide_enabled"
+#define GC_TOR_ACTIVE   GC_NETWORK_TYPE"/active_config"
+#define GC_TOR_SYSTEM   GC_NETWORK_TYPE"/system_wide_enabled"
 
-#define DBUS_IFACE  "org.maemo.TorProvider.Running"
-#define DBUS_MEMBER "Running"
+#define DBUS_IFACE       "org.maemo.Tor"
+#define DBUS_PATH        "/org/maemo/Tor"
+#define DBUS_MEMBER      "StatusChanged"
+#define SIGNAL_CONNECTED "Connected"
+#define SIGNAL_STARTED   "Started"
+#define SIGNAL_STOPPED   "Stopped"
 #define DBUS_SIGNAL "type='signal',interface='"DBUS_IFACE"',member='"DBUS_MEMBER"'"
 
 typedef struct _StatusAppletTor StatusAppletTor;
@@ -57,6 +62,11 @@ typedef enum {
 	TOR_CONNECTING = 1,
 	TOR_CONNECTED = 2,
 } TorConnState;
+
+typedef enum {
+	STATUS_ICON_CONNECTING,
+	STATUS_ICON_CONNECTED,
+} CurStatusIcon;
 
 struct _StatusAppletTor {
 	HDStatusMenuItem parent;
@@ -70,15 +80,26 @@ struct _StatusAppletTorClass {
 struct _StatusAppletTorPrivate {
 	osso_context_t *osso;
 	DBusConnection *dbus;
+
 	gchar *active_config;
 	GtkWidget *menu_button;
+
 	TorConnState connection_state;
+
+	gboolean systemwide_enabled;
 	gboolean provider_connected;
-	gboolean tor_running;
+
 	GtkWidget *settings_dialog;
 	GtkWidget *tor_chkbtn;
 	GtkWidget *config_btn;
 	GtkWidget *touch_selector;
+
+	GdkPixbuf *pix18_tor_connected;
+	GdkPixbuf *pix18_tor_connecting;
+	GdkPixbuf *pix48_tor_disabled;
+	GdkPixbuf *pix48_tor_enabled;
+
+	CurStatusIcon current_status_icon;
 };
 
 HD_DEFINE_PLUGIN_MODULE_WITH_PRIVATE(StatusAppletTor, status_applet_tor,
@@ -89,7 +110,7 @@ static void save_settings(StatusAppletTor * self)
 {
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
 	GConfClient *gconf = gconf_client_get_default();
-	gboolean old_systemwide_enabled, new_systemwide_enabled;
+	gboolean new_systemwide_enabled;
 	gchar *saved_config;
 
 	p->active_config =
@@ -98,42 +119,24 @@ static void save_settings(StatusAppletTor * self)
 
 	saved_config = gconf_client_get_string(gconf, GC_TOR_ACTIVE, NULL);
 	if (saved_config == NULL)
-		return;
+		goto out;
 
-	if (g_strcmp0(saved_config, p->active_config)) {
-		/* TODO: Poke the Tor daemon since the config has changed */
+	/* TODO: Poke the Tor daemon since the config has changed */
+	if (g_strcmp0(saved_config, p->active_config))
 		gconf_client_set_string(gconf, GC_TOR_ACTIVE, p->active_config,
 					NULL);
-	}
-
-	old_systemwide_enabled =
-	    gconf_client_get_bool(gconf, GC_TOR_SYSTEM, NULL);
 
 	new_systemwide_enabled =
 	    hildon_check_button_get_active(HILDON_CHECK_BUTTON(p->tor_chkbtn));
 
-	if (old_systemwide_enabled != new_systemwide_enabled)
+	if (p->systemwide_enabled != new_systemwide_enabled) {
 		gconf_client_set_bool(gconf, GC_TOR_SYSTEM,
-				      hildon_check_button_get_active
-				      (HILDON_CHECK_BUTTON(p->tor_chkbtn)),
-				      NULL);
-
-	g_object_unref(gconf);
-}
-
-static void toggle_tor_daemon(StatusAppletTor * self)
-{
-	StatusAppletTorPrivate *p = GET_PRIVATE(self);
-
-	/* TODO: Needs state if Tor is running by provide or not */
-
-	if (hildon_check_button_get_active(HILDON_CHECK_BUTTON(p->tor_chkbtn))) {
-		status_debug("tor-sb: Starting Tor daemon");
-		/* TODO: Issue dbus call to start */
-	} else {
-		status_debug("tor-sb: Stopping Tor daemon");
-		/* TODO: Issue dbus call to stop */
+				      new_systemwide_enabled, NULL);
+		p->systemwide_enabled = new_systemwide_enabled;
 	}
+
+ out:
+	g_object_unref(gconf);
 }
 
 static void execute_cp_plugin(GtkWidget * btn, StatusAppletTor * self)
@@ -153,6 +156,7 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 {
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
 	GtkWidget *toplevel = gtk_widget_get_toplevel(btn);
+	GConfClient *gconf = gconf_client_get_default();
 	GtkSizeGroup *size_group;
 
 	gtk_widget_hide(toplevel);
@@ -171,10 +175,10 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	p->tor_chkbtn =
 	    hildon_check_button_new(HILDON_SIZE_FINGER_HEIGHT |
 				    HILDON_SIZE_AUTO_WIDTH);
+
 	gtk_button_set_label(GTK_BUTTON(p->tor_chkbtn),
 			     "Enable system-wide Tor daemon");
 
-	/* TODO: Connect with saved configurations from control panel */
 	size_group = gtk_size_group_new(GTK_SIZE_GROUP_HORIZONTAL);
 	p->touch_selector = hildon_touch_selector_new_text();
 
@@ -188,15 +192,13 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 				    1.0);
 
 	/* Fill the selector with available configs */
-	GConfClient *gconf = gconf_client_get_default();
-	GSList *configs, *iter;
-	configs = gconf_client_all_dirs(gconf, GC_TOR, NULL);
-
 	hildon_check_button_set_active(HILDON_CHECK_BUTTON(p->tor_chkbtn),
 				       gconf_client_get_bool(gconf,
 							     GC_TOR_SYSTEM,
 							     NULL));
-	g_object_unref(gconf);
+
+	GSList *configs, *iter;
+	configs = gconf_client_all_dirs(gconf, GC_TOR, NULL);
 
 	/* Counter for figuring out the active config */
 	int i = -1;
@@ -225,9 +227,7 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(p->settings_dialog)->vbox),
 			   p->config_btn, TRUE, TRUE, 0);
 
-	/* TODO: Make the buttons insensitive when provider is connected? */
-	/* TODO: Maybe also, if the provider is connected, list only configs
-	 * supporting transparent proxying? */
+	/* Make the buttons insensitive when provider is connected? */
 	if (p->provider_connected) {
 		gtk_widget_set_sensitive(p->tor_chkbtn, FALSE);
 		gtk_widget_set_sensitive(p->config_btn, FALSE);
@@ -237,7 +237,6 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 	switch (gtk_dialog_run(GTK_DIALOG(p->settings_dialog))) {
 	case GTK_RESPONSE_ACCEPT:
 		save_settings(self);
-		toggle_tor_daemon(self);
 		break;
 	case SETTINGS_RESPONSE:
 		execute_cp_plugin(btn, self);
@@ -245,40 +244,65 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 		break;
 	}
 
+	g_object_unref(gconf);
 	gtk_widget_hide_all(p->settings_dialog);
 	gtk_widget_destroy(p->settings_dialog);
+}
+
+static void set_status_icon(gpointer obj, GdkPixbuf * pixbuf)
+{
+	hd_status_plugin_item_set_status_area_icon(HD_STATUS_PLUGIN_ITEM(obj),
+						   pixbuf);
+}
+
+static int blink_status_icon(gpointer obj)
+{
+	StatusAppletTor *sa = STATUS_APPLET_TOR(obj);
+	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
+
+	if (p->connection_state != TOR_CONNECTING)
+		return FALSE;
+
+	switch (p->current_status_icon) {
+	case STATUS_ICON_CONNECTED:
+		set_status_icon(obj, p->pix18_tor_connecting);
+		p->current_status_icon = STATUS_ICON_CONNECTING;
+		break;
+	case STATUS_ICON_CONNECTING:
+		set_status_icon(obj, p->pix18_tor_connected);
+		p->current_status_icon = STATUS_ICON_CONNECTED;
+		break;
+	}
+
+	return TRUE;
 }
 
 static void status_applet_tor_set_icons(StatusAppletTor * self)
 {
 	StatusAppletTor *sa = STATUS_APPLET_TOR(self);
 	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
-	GtkIconTheme *theme = gtk_icon_theme_get_default();
 	GdkPixbuf *menu_pixbuf = NULL;
 	GdkPixbuf *status_pixbuf = NULL;
 
 	switch (p->connection_state) {
 	case TOR_NOT_CONNECTED:
-		menu_pixbuf =
-		    gtk_icon_theme_load_icon(theme, "statusarea_tor_disabled",
-					     48, 0, NULL);
+		menu_pixbuf = p->pix48_tor_disabled;
 		hildon_button_set_value(HILDON_BUTTON(p->menu_button),
 					"Disconnected");
+		set_status_icon(self, status_pixbuf);
 		break;
 	case TOR_CONNECTING:
-		/* TODO: blink, use network-liveness from Tor control socket */
 		hildon_button_set_value(HILDON_BUTTON(p->menu_button),
 					"Connecting");
+		p->current_status_icon = STATUS_ICON_CONNECTED;
+		g_timeout_add_seconds(1, blink_status_icon, sa);
 		break;
 	case TOR_CONNECTED:
-		menu_pixbuf =
-		    gtk_icon_theme_load_icon(theme, "statusarea_tor_enabled",
-					     48, 0, NULL);
-		status_pixbuf =
-		    gtk_icon_theme_load_icon(theme, "statusarea_tor_connected",
-					     18, 0, NULL);
+		menu_pixbuf = p->pix48_tor_enabled;
+		status_pixbuf = p->pix18_tor_connected;
 		hildon_button_set_value(HILDON_BUTTON(p->menu_button),
 					"Connected");
+		set_status_icon(self, status_pixbuf);
 		break;
 	default:
 		status_debug("%s: Invalid connection_state", G_STRLOC);
@@ -290,15 +314,6 @@ static void status_applet_tor_set_icons(StatusAppletTor * self)
 					gtk_image_new_from_pixbuf(menu_pixbuf));
 		hildon_button_set_image_position(HILDON_BUTTON(p->menu_button),
 						 0);
-		g_object_unref(menu_pixbuf);
-	}
-
-	/* The icon is hidden when the pixbuf is NULL */
-	hd_status_plugin_item_set_status_area_icon(HD_STATUS_PLUGIN_ITEM(self),
-						   status_pixbuf);
-
-	if (status_pixbuf) {
-		g_object_unref(status_pixbuf);
 	}
 }
 
@@ -306,13 +321,19 @@ static int handle_running(gpointer obj, DBusMessage * msg)
 {
 	/* Either show or hide status icon */
 	StatusAppletTorPrivate *p = GET_PRIVATE(obj);
-	int status;
+	const gchar *status = NULL;
 
-	dbus_message_get_args(msg, NULL, DBUS_TYPE_BYTE,
+	dbus_message_get_args(msg, NULL, DBUS_TYPE_STRING,
 			      &status, DBUS_TYPE_INVALID);
 
-	p->provider_connected = TRUE;
-	p->tor_running = TRUE;
+	if (!g_strcmp0(status, SIGNAL_CONNECTED))
+		p->connection_state = TOR_CONNECTED;
+	else if (!g_strcmp0(status, SIGNAL_STARTED))
+		p->connection_state = TOR_CONNECTING;
+	else if (!g_strcmp0(status, SIGNAL_STOPPED))
+		p->connection_state = TOR_NOT_CONNECTED;
+
+	status_applet_tor_set_icons(obj);
 
 	return 0;
 }
@@ -354,13 +375,13 @@ static void status_applet_tor_init(StatusAppletTor * self)
 	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
 	DBusError err;
 	GConfClient *gconf;
+	GtkIconTheme *theme;
 
 	p->osso = osso_initialize("tor-sb", VERSION, FALSE, NULL);
 
 	dbus_error_init(&err);
 
 	p->connection_state = TOR_NOT_CONNECTED;
-	p->tor_running = FALSE;
 	p->provider_connected = FALSE;
 
 	/* Dbus setup for icd provider */
@@ -368,10 +389,30 @@ static void status_applet_tor_init(StatusAppletTor * self)
 
 	/* Get current config; make sure to keep this up to date */
 	gconf = gconf_client_get_default();
+
 	p->active_config = gconf_client_get_string(gconf, GC_TOR_ACTIVE, NULL);
+	p->systemwide_enabled =
+	    gconf_client_get_bool(gconf, GC_TOR_SYSTEM, NULL);
+
 	g_object_unref(gconf);
+
 	if (p->active_config == NULL)
 		p->active_config = "Default";
+
+	/* Icons */
+	theme = gtk_icon_theme_get_default();
+	p->pix18_tor_connected = gtk_icon_theme_load_icon(theme,
+							  "statusarea_tor_connected",
+							  18, 0, NULL);
+	p->pix18_tor_connecting =
+	    gtk_icon_theme_load_icon(theme, "statusarea_tor_connected", 18, 0,
+				     NULL);
+	p->pix48_tor_disabled =
+	    gtk_icon_theme_load_icon(theme, "statusarea_tor_disabled", 48, 0,
+				     NULL);
+	p->pix48_tor_enabled =
+	    gtk_icon_theme_load_icon(theme, "statusarea_tor_enabled", 48, 0,
+				     NULL);
 
 	/* Gtk items */
 	p->menu_button =
