@@ -140,6 +140,14 @@ static void execute_cp_plugin(GtkWidget * btn, StatusAppletTor * self)
 	}
 }
 
+static void set_buttons_sensitivity(StatusAppletTor * obj, gboolean state)
+{
+	StatusAppletTorPrivate *p = GET_PRIVATE(obj);
+
+	gtk_widget_set_sensitive(p->tor_chkbtn, state);
+	gtk_widget_set_sensitive(p->config_btn, state);
+}
+
 static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 {
 	StatusAppletTorPrivate *p = GET_PRIVATE(self);
@@ -216,10 +224,7 @@ static void status_menu_clicked_cb(GtkWidget * btn, StatusAppletTor * self)
 			   p->config_btn, TRUE, TRUE, 0);
 
 	/* Make the buttons insensitive when provider is connected? */
-	if (p->provider_connected) {
-		gtk_widget_set_sensitive(p->tor_chkbtn, FALSE);
-		gtk_widget_set_sensitive(p->config_btn, FALSE);
-	}
+	set_buttons_sensitivity(self, !p->provider_connected);
 
 	gtk_widget_show_all(p->settings_dialog);
 	switch (gtk_dialog_run(GTK_DIALOG(p->settings_dialog))) {
@@ -325,6 +330,14 @@ static int handle_running(gpointer obj, DBusMessage * msg)
 		p->connection_state = TOR_NOT_CONNECTED;
 	else
 		p->connection_state = TOR_NOT_CONNECTED;
+
+	if (!g_strcmp0(mode, ICD_TOR_SIGNALS_STATUS_MODE_PROVIDER)) {
+		p->provider_connected = TRUE;
+		set_buttons_sensitivity(obj, FALSE);
+	} else {
+		p->provider_connected = FALSE;
+		set_buttons_sensitivity(obj, TRUE);
+	}
 
 	status_applet_tor_set_icons(obj);
 
