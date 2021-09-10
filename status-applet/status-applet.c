@@ -386,7 +386,7 @@ static void get_provider_status(StatusAppletTor * self)
 
 	msg = dbus_message_new_method_call(ICD_TOR_DBUS_INTERFACE,
 					   ICD_TOR_DBUS_PATH,
-					   ICD_TOR_SIGNALS_GETSTATUS,
+					   ICD_TOR_METHOD_GETSTATUS,
 					   "GetStatus");
 
 	if (msg == NULL) {
