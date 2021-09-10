@@ -363,6 +363,89 @@ static void setup_dbus_matching(StatusAppletTor * self)
 	}
 }
 
+static void get_provider_status(StatusAppletTor * self)
+{
+	StatusAppletTorPrivate *p = GET_PRIVATE(self);
+	DBusMessage *msg;
+	DBusMessageIter args;
+	DBusPendingCall *pending;
+	const gchar *status, *mode;
+
+	msg = dbus_message_new_method_call(ICD_TOR_DBUS_INTERFACE,
+					   ICD_TOR_DBUS_PATH,
+					   ICD_TOR_SIGNALS_GETSTATUS,
+					   "GetStatus");
+
+	if (msg == NULL) {
+		status_debug("tor-sb: %s: msg == NULL", G_STRFUNC);
+		goto noprovider;
+	}
+
+	if (!dbus_connection_send_with_reply(p->dbus, msg, &pending, -1)) {
+		status_debug("tor-sb: OOM at %s:%s", G_STRFUNC, G_STRLOC);
+		goto noprovider;
+	}
+
+	if (pending == NULL) {
+		status_debug("tor-sb: %s: pending == NULL", G_STRFUNC);
+		goto noprovider;
+	}
+
+	dbus_connection_flush(p->dbus);
+	dbus_message_unref(msg);
+
+	dbus_pending_call_block(pending);
+	msg = dbus_pending_call_steal_reply(pending);
+	dbus_pending_call_unref(pending);
+
+	if (msg == NULL) {
+		status_debug("tor-sb: %s: method reply is NULL", G_STRFUNC);
+		goto noprovider;
+	}
+
+	if (!dbus_message_iter_init(msg, &args)) {
+		status_debug("tor-sb: %s: reply has no arguments", G_STRFUNC);
+		dbus_message_unref(msg);
+		goto noprovider;
+	}
+
+	dbus_message_iter_get_basic(&args, &status);
+
+	if (!dbus_message_iter_next(&args)) {
+		status_debug("tor-sb: %s: reply has too few arguments",
+			     G_STRFUNC);
+		dbus_message_unref(msg);
+		goto noprovider;
+	}
+
+	dbus_message_iter_get_basic(&args, &mode);
+	dbus_message_unref(msg);
+
+	if (!g_strcmp0(ICD_TOR_SIGNALS_STATUS_MODE_NORMAL, mode))
+		p->provider_connected = TRUE;
+	else
+		p->provider_connected = FALSE;
+
+	if (!g_strcmp0(ICD_TOR_SIGNALS_STATUS_STATE_CONNECTED, status)) {
+		p->connection_state = TOR_CONNECTED;
+		p->current_status_icon = STATUS_ICON_CONNECTED;
+	} else if (!g_strcmp0(ICD_TOR_SIGNALS_STATUS_STATE_STARTED, status)) {
+		p->connection_state = TOR_CONNECTING;
+		p->current_status_icon = STATUS_ICON_CONNECTING;
+	} else {
+		/* else if (!g_strcmp0(ICD_TOR_SIGNALS_STATUS_STATE_STOPPED), status) { */
+		p->connection_state = TOR_NOT_CONNECTED;
+		p->current_status_icon = STATUS_ICON_NONE;
+	}
+
+	return;
+
+ noprovider:
+	p->connection_state = TOR_NOT_CONNECTED;
+	p->provider_connected = FALSE;
+	p->current_status_icon = STATUS_ICON_NONE;
+}
+
 static void status_applet_tor_init(StatusAppletTor * self)
 {
 	StatusAppletTor *sa = STATUS_APPLET_TOR(self);
@@ -375,12 +458,11 @@ static void status_applet_tor_init(StatusAppletTor * self)
 
 	dbus_error_init(&err);
 
-	p->connection_state = TOR_NOT_CONNECTED;
-	p->provider_connected = FALSE;
-	p->current_status_icon = STATUS_ICON_NONE;
-
 	/* Dbus setup for icd provider */
 	setup_dbus_matching(self);
+
+	/* Check if we're connected to a provider */
+	get_provider_status(self);
 
 	/* Get current config; make sure to keep this up to date */
 	gconf = gconf_client_get_default();
