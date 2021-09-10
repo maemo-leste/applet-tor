@@ -312,15 +312,17 @@ static int handle_running(gpointer obj, DBusMessage * msg)
 	/* Either show or hide status icon */
 	StatusAppletTorPrivate *p = GET_PRIVATE(obj);
 	const gchar *status = NULL;
+	const gchar *mode = NULL;
 
 	dbus_message_get_args(msg, NULL, DBUS_TYPE_STRING, &status,
+			      DBUS_TYPE_STRING, &mode,
 			      DBUS_TYPE_INVALID);
 
-	if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_CONNECTED))
+	if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STATE_STOPPED))
 		p->connection_state = TOR_CONNECTED;
-	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STARTED))
+	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STATE_STARTED))
 		p->connection_state = TOR_CONNECTING;
-	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STOPPED))
+	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STATE_STOPPED))
 		p->connection_state = TOR_NOT_CONNECTED;
 	else
 		p->connection_state = TOR_NOT_CONNECTED;
