@@ -1,9 +1,9 @@
 #!/bin/sh
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
-rc-update del tor default || true
+rc-update del tor default 2>&1 > /dev/null || true
 
-mkdir -p /var/lib/tor-applet
-chown debian-tor:debian-tor /var/lib/tor-applet
+mkdir -p /var/lib/tor-applet/datadir
+chown -R debian-tor:debian-tor /var/lib/tor-applet
 
 #DEBHELPER#
