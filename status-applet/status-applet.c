@@ -315,10 +315,9 @@ static int handle_running(gpointer obj, DBusMessage * msg)
 	const gchar *mode = NULL;
 
 	dbus_message_get_args(msg, NULL, DBUS_TYPE_STRING, &status,
-			      DBUS_TYPE_STRING, &mode,
-			      DBUS_TYPE_INVALID);
+			      DBUS_TYPE_STRING, &mode, DBUS_TYPE_INVALID);
 
-	if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STATE_STOPPED))
+	if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STATE_CONNECTED))
 		p->connection_state = TOR_CONNECTED;
 	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STATE_STARTED))
 		p->connection_state = TOR_CONNECTING;
