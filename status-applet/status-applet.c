@@ -52,6 +52,7 @@ typedef enum {
 } TorConnState;
 
 typedef enum {
+	STATUS_ICON_NONE,
 	STATUS_ICON_CONNECTING,
 	STATUS_ICON_CONNECTED,
 } CurStatusIcon;
@@ -101,15 +102,14 @@ static void save_settings(StatusAppletTor * self)
 	gboolean new_systemwide_enabled;
 	gchar *saved_config;
 
-	p->active_config =
-	    hildon_touch_selector_get_current_text(HILDON_TOUCH_SELECTOR
-						   (p->touch_selector));
-
 	saved_config = gconf_client_get_string(gconf, GC_TOR_ACTIVE, NULL);
 	if (saved_config == NULL)
 		goto out;
 
-	/* TODO: Poke the Tor daemon since the config has changed */
+	p->active_config =
+	    hildon_touch_selector_get_current_text(HILDON_TOUCH_SELECTOR
+						   (p->touch_selector));
+
 	if (g_strcmp0(saved_config, p->active_config))
 		gconf_client_set_string(gconf, GC_TOR_ACTIVE, p->active_config,
 					NULL);
@@ -252,6 +252,7 @@ static int blink_status_icon(gpointer obj)
 		return FALSE;
 
 	switch (p->current_status_icon) {
+	case STATUS_ICON_NONE:
 	case STATUS_ICON_CONNECTED:
 		set_status_icon(obj, p->pix18_tor_connecting);
 		p->current_status_icon = STATUS_ICON_CONNECTING;
@@ -270,27 +271,28 @@ static void status_applet_tor_set_icons(StatusAppletTor * self)
 	StatusAppletTor *sa = STATUS_APPLET_TOR(self);
 	StatusAppletTorPrivate *p = GET_PRIVATE(sa);
 	GdkPixbuf *menu_pixbuf = NULL;
-	GdkPixbuf *status_pixbuf = NULL;
 
 	switch (p->connection_state) {
 	case TOR_NOT_CONNECTED:
 		menu_pixbuf = p->pix48_tor_disabled;
 		hildon_button_set_value(HILDON_BUTTON(p->menu_button),
 					"Disconnected");
-		set_status_icon(self, status_pixbuf);
+		set_status_icon(self, NULL);
+		p->current_status_icon = STATUS_ICON_NONE;
 		break;
 	case TOR_CONNECTING:
 		hildon_button_set_value(HILDON_BUTTON(p->menu_button),
 					"Connecting");
-		p->current_status_icon = STATUS_ICON_CONNECTED;
+		set_status_icon(self, p->pix18_tor_connecting);
+		p->current_status_icon = STATUS_ICON_CONNECTING;
 		g_timeout_add_seconds(1, blink_status_icon, sa);
 		break;
 	case TOR_CONNECTED:
 		menu_pixbuf = p->pix48_tor_enabled;
-		status_pixbuf = p->pix18_tor_connected;
 		hildon_button_set_value(HILDON_BUTTON(p->menu_button),
 					"Connected");
-		set_status_icon(self, status_pixbuf);
+		set_status_icon(self, p->pix18_tor_connected);
+		p->current_status_icon = STATUS_ICON_CONNECTED;
 		break;
 	default:
 		status_debug("%s: Invalid connection_state", G_STRLOC);
@@ -311,14 +313,16 @@ static int handle_running(gpointer obj, DBusMessage * msg)
 	StatusAppletTorPrivate *p = GET_PRIVATE(obj);
 	const gchar *status = NULL;
 
-	dbus_message_get_args(msg, NULL, DBUS_TYPE_STRING,
-			      &status, DBUS_TYPE_INVALID);
+	dbus_message_get_args(msg, NULL, DBUS_TYPE_STRING, &status,
+			      DBUS_TYPE_INVALID);
 
 	if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_CONNECTED))
 		p->connection_state = TOR_CONNECTED;
 	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STARTED))
 		p->connection_state = TOR_CONNECTING;
 	else if (!g_strcmp0(status, ICD_TOR_SIGNALS_STATUS_STOPPED))
+		p->connection_state = TOR_NOT_CONNECTED;
+	else
 		p->connection_state = TOR_NOT_CONNECTED;
 
 	status_applet_tor_set_icons(obj);
@@ -372,6 +376,7 @@ static void status_applet_tor_init(StatusAppletTor * self)
 
 	p->connection_state = TOR_NOT_CONNECTED;
 	p->provider_connected = FALSE;
+	p->current_status_icon = STATUS_ICON_NONE;
 
 	/* Dbus setup for icd provider */
 	setup_dbus_matching(self);
@@ -390,11 +395,11 @@ static void status_applet_tor_init(StatusAppletTor * self)
 
 	/* Icons */
 	theme = gtk_icon_theme_get_default();
-	p->pix18_tor_connected = gtk_icon_theme_load_icon(theme,
-							  "statusarea_tor_connected",
-							  18, 0, NULL);
-	p->pix18_tor_connecting =
+	p->pix18_tor_connected =
 	    gtk_icon_theme_load_icon(theme, "statusarea_tor_connected", 18, 0,
+				     NULL);
+	p->pix18_tor_connecting =
+	    gtk_icon_theme_load_icon(theme, "statusarea_tor_connecting", 18, 0,
 				     NULL);
 	p->pix48_tor_disabled =
 	    gtk_icon_theme_load_icon(theme, "statusarea_tor_disabled", 48, 0,
@@ -408,8 +413,8 @@ static void status_applet_tor_init(StatusAppletTor * self)
 	    hildon_button_new_with_text(HILDON_SIZE_FINGER_HEIGHT,
 					HILDON_BUTTON_ARRANGEMENT_VERTICAL,
 					"Tor", NULL);
-	hildon_button_set_alignment(HILDON_BUTTON(p->menu_button),
-				    0.0, 0.5, 0.0, 0.0);
+	hildon_button_set_alignment(HILDON_BUTTON(p->menu_button), 0.0, 0.5,
+				    0.0, 0.0);
 	hildon_button_set_style(HILDON_BUTTON(p->menu_button),
 				HILDON_BUTTON_STYLE_PICKER);
 
