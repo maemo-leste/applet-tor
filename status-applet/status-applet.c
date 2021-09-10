@@ -421,7 +421,7 @@ static void get_provider_status(StatusAppletTor * self)
 	dbus_message_iter_get_basic(&args, &mode);
 	dbus_message_unref(msg);
 
-	if (!g_strcmp0(ICD_TOR_SIGNALS_STATUS_MODE_NORMAL, mode))
+	if (!g_strcmp0(ICD_TOR_SIGNALS_STATUS_MODE_PROVIDER, mode))
 		p->provider_connected = TRUE;
 	else
 		p->provider_connected = FALSE;
