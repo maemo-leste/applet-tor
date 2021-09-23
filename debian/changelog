@@ -1,3 +1,9 @@
+applet-tor (0.2.1) unstable; urgency=medium
+
+  * status-applet: Fix segfault on status change
+
+ -- Merlijn Wajer <merlijn@wizzup.org>  Thu, 23 Sep 2021 09:47:30 +0200
+
 applet-tor (0.2.0) unstable; urgency=medium
 
   * postinst: Create directories and be quiet on rc-update.
