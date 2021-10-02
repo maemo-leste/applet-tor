@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Ivan J. <parazyd@dyne.org>
 Build-Depends:
  debhelper-compat (= 12),
+ maemo-system-services-dev,
  libhildon1-dev,
  libhildondesktop1-dev,
  hildon-control-panel-dev,
@@ -31,3 +32,17 @@ Depends: ${misc:Depends}, ${shlibs:Depends},
  libicd-network-tor,
  libicd-provider-tor,
 Description: Tor control panel applet
+
+Package: tor-maemo
+Section: user/network
+Architecture: all
+Depends:
+ ${misc:Depends},
+ status-area-tor,
+ control-panel-tor,
+ libicd-network-tor,
+ libicd-provider-tor,
+Description: Tor connectivity package
+ This package serves as a metapackage to install ICD2 plugins and
+ providers for Tor, and the accompanying graphical user interfaces.
+XB-Maemo-Icon-26: ${maemo:icon26}
