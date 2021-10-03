@@ -33,7 +33,7 @@ Depends: ${misc:Depends}, ${shlibs:Depends},
  libicd-provider-tor,
 Description: Tor control panel applet
 
-Package: tor-maemo
+Package: Tor support for Maemo
 Section: user/network
 Architecture: all
 Depends:
