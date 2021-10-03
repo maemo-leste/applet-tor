@@ -2,6 +2,7 @@
 
 gtk-update-icon-cache -f /usr/share/icons/hicolor
 update-rc.d tor disable || true
+service tor stop || true
 
 mkdir -p /var/lib/tor-applet/datadir
 chown -R debian-tor:debian-tor /var/lib/tor-applet
